@@ -225,7 +225,7 @@ const Scene: React.FC = () => {
       // Try to load the SVG image
       const rasterSize = 512; // Size for rasterization
       
-      loadSVGAsImage('/briefcase-svgrepo-com.svg', rasterSize, rasterSize)
+      loadSVGAsImage('/search.svg', rasterSize, rasterSize)
         .then(img => {
           try {
             const w = img.width || rasterSize;
