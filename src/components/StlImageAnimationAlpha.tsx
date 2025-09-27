@@ -654,18 +654,4 @@ const Scene: React.FC<STLViewerProps> = ({
   );
 };
 
-// Dashboard component that uses the Scene
-function Dashboard() {
-  return (
-    <div style={{ width: "100%", height: "100vh" }}>
-      <Scene 
-        autoRotate={true}
-        title="Auto-Rotating 3D Model"
-        modelColor="#2563eb"
-        backgroundColor="#f8fafc"
-      />
-    </div>
-  );
-}
-
-export default Dashboard;
+export default Scene;
