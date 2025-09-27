@@ -1,6 +1,5 @@
-import React from 'react';
+import SceneComponent from './StlImageAnimationAlpha';
 
-// Define the expected props interface
 interface SceneProps {
   autoRotate?: boolean;
   title?: string;
@@ -11,15 +10,11 @@ interface SceneProps {
   showControls?: boolean;
 }
 
-// Import the Scene component
-import SceneComponent from './StlImageAnimationAlpha';
-
-// Type assertion for the imported component
 const Scene = SceneComponent as React.FC<SceneProps>;
 
 function DashboardAlpha() {
   return (
-    <div style={{ width: "100%", height: "100vh" }}>
+    <div className="p-20 m-20 max-w-full mx-auto h-auto">
       <Scene 
         autoRotate={true}
         title="Auto-Rotating 3D Model"
