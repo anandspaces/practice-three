@@ -1,7 +1,8 @@
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'
-import Dashboard from './components/Dashboard'
-import DashboardAlpha from './components/DashboardAlpha'
-import DashboardBeta from './components/DashboardBeta'
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Dashboard from './components/Dashboard';
+import DashboardAlpha from './components/DashboardAlpha';
+import DashboardBeta from './components/DashboardBeta';
+import DashboardGamma from './components/DashboardGamma';
 
 function App() {
   return (
@@ -10,6 +11,7 @@ function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/alpha" element={<DashboardAlpha />} />
         <Route path="/beta" element={<DashboardBeta />} />
+        <Route path="/gamma" element={<DashboardGamma />} />
       </Routes>
     </Router>
   )
