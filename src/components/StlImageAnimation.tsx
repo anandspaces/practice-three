@@ -183,7 +183,7 @@ class OrbitControls {
       
       const element = this.domElement;
       this.rotateLeft(2 * Math.PI * rotateDelta.x / element.clientHeight);
-      this.rotateUp(2 * Math.PI * rotateDelta.y / element.clientHeight);
+      // this.rotateUp(2 * Math.PI * rotateDelta.y / element.clientHeight);
       
       this.rotateStart.copy(rotateEnd);
       this.update();
@@ -229,9 +229,9 @@ class OrbitControls {
     this.sphericalDelta.theta -= angle;
   }
 
-  private rotateUp(angle: number) {
-    this.sphericalDelta.phi -= angle;
-  }
+  // private rotateUp(angle: number) {
+  //   this.sphericalDelta.phi -= angle;
+  // }
 
   private dollyIn(dollyScale: number) {
     this.sphericalDelta.radius /= dollyScale;
@@ -283,9 +283,9 @@ class OrbitControls {
     
     this.spherical.setFromVector3(offset);
     this.spherical.theta += this.sphericalDelta.theta;
-    this.spherical.phi += this.sphericalDelta.phi;
-    
-    this.spherical.phi = Math.max(0.000001, Math.min(Math.PI - 0.000001, this.spherical.phi));
+    this.spherical.phi = Math.PI / 2; // New: Fixed at horizontal level
+    // this.spherical.phi += this.sphericalDelta.phi;
+    // this.spherical.phi = Math.max(0.000001, Math.min(Math.PI - 0.000001, this.spherical.phi));
     this.spherical.radius = Math.max(this.minDistance, Math.min(this.maxDistance, this.spherical.radius));
     
     offset.setFromSpherical(this.spherical);
