@@ -1,4 +1,4 @@
-import Scene from './StlImageAnimationGamma';
+import Scene from '../components/StlImageAnimationGamma';
 
 function DashboardGamma() {
   return (

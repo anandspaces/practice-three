@@ -1,4 +1,4 @@
-import Scene from './StlImageAnimationBeta';
+import Scene from '../components/StlImageAnimationBeta';
 
 
 function DashboardBeta() {

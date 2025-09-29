@@ -1,8 +1,8 @@
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
-import DashboardAlpha from './components/DashboardAlpha';
-import DashboardBeta from './components/DashboardBeta';
-import DashboardGamma from './components/DashboardGamma';
+import DashboardAlpha from './pages/DashboardAlpha';
+import DashboardBeta from './pages/DashboardBeta';
+import DashboardGamma from './pages/DashboardGamma';
 
 function App() {
   return (

@@ -1,4 +1,4 @@
-import SceneComponent from './StlImageAnimationAlpha';
+import SceneComponent from '../components/StlImageAnimationAlpha';
 
 interface SceneProps {
   autoRotate?: boolean;
