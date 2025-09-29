@@ -1,4 +1,4 @@
-import Scene from "./ToothScene";
+import Scene from "./StlImageAnimation";
 
 function Dashboard() {
   return (
