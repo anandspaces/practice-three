@@ -336,13 +336,13 @@ interface STLViewerProps {
 }
 
 const Scene: React.FC<STLViewerProps> = ({
-  stlUrl = 'upper.stl',
+  stlUrl = '/ROOTLIB/upper/grin-design-26.stl',
   width = '100%',
   height = '400px',
   showControls = true,
   autoRotate = true,
-  modelColor = '#2563eb',
-  backgroundColor = '#f8fafc',
+  modelColor = '',
+  backgroundColor = '',
   modelScale = 1,
   className = '',
   style = {},
@@ -392,7 +392,7 @@ const Scene: React.FC<STLViewerProps> = ({
     try {
       // Create scene
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color(backgroundColor);
+      // scene.background = new THREE.Color(backgroundColor);
       sceneRef.current = scene;
       
       // Create camera with responsive aspect ratio
@@ -407,7 +407,7 @@ const Scene: React.FC<STLViewerProps> = ({
       // Create renderer
       const renderer = new THREE.WebGLRenderer({ 
         antialias: true,
-        alpha: false,
+        alpha: true,
         powerPreference: 'high-performance'
       });
       renderer.setSize(container.clientWidth, container.clientHeight);
@@ -447,6 +447,8 @@ const Scene: React.FC<STLViewerProps> = ({
           try {
             // Center and compute geometry properties
             geometry.center();
+            geometry.rotateX(Math.PI); // 180 degrees
+            // geometry.rotateZ(Math.PI / ); // 180 degrees
             geometry.computeBoundingBox();
             geometry.computeBoundingSphere();
 
@@ -462,6 +464,7 @@ const Scene: React.FC<STLViewerProps> = ({
             // Create mesh with scale
             const model = new THREE.Mesh(geometry, material);
             model.scale.setScalar(modelScale);
+            // model.rotation.y = Math.PI
             model.castShadow = true;
             model.receiveShadow = true;
             modelRef.current = model;
@@ -479,8 +482,8 @@ const Scene: React.FC<STLViewerProps> = ({
             
             camera.position.set(
               center.x + distance * 0.7,
-              center.y + distance * 0.5,
-              center.z + distance * 0.7
+              center.y + distance * 0.7,
+              center.z + distance * 0.9
             );
             
             // Create orbit controls
@@ -637,7 +640,7 @@ const Scene: React.FC<STLViewerProps> = ({
 
   return (
     <div 
-      className={`bg-white shadow-lg border border-gray-200 ${className}`} 
+      className={`${className}`} 
       style={containerStyles}
     >
 
