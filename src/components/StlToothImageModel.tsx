@@ -102,7 +102,7 @@ const Scene: React.FC = () => {
         0.1,
         1000
       );
-      camera.position.set(5, 5, 5);
+      camera.position.set(0, 0, 10);
       cameraRef.current = camera;
       
       // Create renderer
@@ -135,8 +135,8 @@ const Scene: React.FC = () => {
       scene.add(dirLight2);
 
       // Add grid helper
-      const gridHelper = new THREE.GridHelper(20, 20, 0xcccccc, 0xeeeeee);
-      scene.add(gridHelper);
+      // const gridHelper = new THREE.GridHelper(20, 20, 0xcccccc, 0xeeeeee);
+      // scene.add(gridHelper);
 
       // Mouse interaction variables
       let isDragging = false;
