@@ -1,4 +1,4 @@
-import Scene from "./StlImageAnimation";
+import Scene from "../components/StlImageAnimation";
 
 function Dashboard() {
   return (
