@@ -3,6 +3,7 @@ import Dashboard from './pages/Dashboard';
 import DashboardAlpha from './pages/DashboardAlpha';
 import DashboardBeta from './pages/DashboardBeta';
 import DashboardGamma from './pages/DashboardGamma';
+import DashboardDelta from './pages/DashboardDelta';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/alpha" element={<DashboardAlpha />} />
         <Route path="/beta" element={<DashboardBeta />} />
         <Route path="/gamma" element={<DashboardGamma />} />
+        <Route path="/delta" element={<DashboardDelta />} />
       </Routes>
     </Router>
   )
