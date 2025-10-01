@@ -4,6 +4,7 @@ import DashboardAlpha from './pages/DashboardAlpha';
 import DashboardBeta from './pages/DashboardBeta';
 import DashboardGamma from './pages/DashboardGamma';
 import DashboardDelta from './pages/DashboardDelta';
+import DashboardEpsilon from './pages/DashboardEpsilon';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/beta" element={<DashboardBeta />} />
         <Route path="/gamma" element={<DashboardGamma />} />
         <Route path="/delta" element={<DashboardDelta />} />
+        <Route path="/epsilon" element={<DashboardEpsilon />} />
       </Routes>
     </Router>
   )
