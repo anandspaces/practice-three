@@ -6,6 +6,7 @@ import DashboardGamma from './pages/DashboardGamma';
 import DashboardDelta from './pages/DashboardDelta';
 import DashboardEpsilon from './pages/DashboardEpsilon';
 import DashboardZeta from './pages/DashboardZeta';
+import DashboardEta from './pages/DashboardEta';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/delta" element={<DashboardDelta />} />
         <Route path="/epsilon" element={<DashboardEpsilon />} />
         <Route path="/zeta" element={<DashboardZeta />} />
+        <Route path="/eta" element={<DashboardEta />} />
       </Routes>
     </Router>
   )
