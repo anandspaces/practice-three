@@ -131,15 +131,18 @@ class OrbitControls {
   private sphericalDelta = new THREE.Spherical();
   private rotateStart = new THREE.Vector2();
   private panStart = new THREE.Vector2();
+  private scale = 1;
   
   public enableRotate = true;
-  public enableZoom = true;
+  // public enableZoom = true;
   public enablePan = true;
   public rotateSpeed = 1.0;
-  public zoomSpeed = 1.0;
+  // public zoomSpeed = 1.0;
   public panSpeed = 1.0;
   public minDistance = 0;
   public maxDistance = Infinity;
+  public minPolarAngle = 0;
+  public maxPolarAngle = Math.PI;
   
   private state = 'NONE';
   private isUserInteracting = false;
@@ -148,49 +151,60 @@ class OrbitControls {
     this.camera = camera;
     this.domElement = domElement;
     
-    this.update();
+    const offset = new THREE.Vector3();
+    offset.copy(this.camera.position).sub(this.target);
+    this.spherical.setFromVector3(offset);
+    
     this.addEventListeners();
+    this.update();
   }
 
   private addEventListeners() {
-    this.domElement.addEventListener('mousedown', this.onMouseDown.bind(this));
-    this.domElement.addEventListener('wheel', this.onMouseWheel.bind(this));
-    this.domElement.addEventListener('contextmenu', this.onContextMenu.bind(this));
+    this.domElement.addEventListener('mousedown', this.onMouseDown);
+    this.domElement.addEventListener('wheel', this.onMouseWheel, { passive: false });
+    this.domElement.addEventListener('contextmenu', this.onContextMenu);
+    this.domElement.addEventListener('touchstart', this.onTouchStart, { passive: false });
+    this.domElement.addEventListener('touchmove', this.onTouchMove, { passive: false });
+    this.domElement.addEventListener('touchend', this.onTouchEnd);
   }
 
-  private onMouseDown(event: MouseEvent) {
+  private onMouseDown = (event: MouseEvent) => {
+    event.preventDefault();
     this.isUserInteracting = true;
     
     if (event.button === 0) {
       this.state = 'ROTATE';
       this.rotateStart.set(event.clientX, event.clientY);
-    } else if (event.button === 1) {
+    } else if (event.button === 2) {
       this.state = 'PAN';
       this.panStart.set(event.clientX, event.clientY);
     }
     
     if (this.state !== 'NONE') {
-      document.addEventListener('mousemove', this.onMouseMove.bind(this));
-      document.addEventListener('mouseup', this.onMouseUp.bind(this));
+      document.addEventListener('mousemove', this.onMouseMove);
+      document.addEventListener('mouseup', this.onMouseUp);
       this.domElement.style.cursor = 'grabbing';
     }
   }
 
-  private onMouseMove(event: MouseEvent) {
+  private onMouseMove = (event: MouseEvent) => {
+    event.preventDefault();
+    
     if (this.state === 'ROTATE') {
-      if (this.enableRotate === false) return;
+      if (!this.enableRotate) return;
       
       const rotateEnd = new THREE.Vector2(event.clientX, event.clientY);
       const rotateDelta = new THREE.Vector2().subVectors(rotateEnd, this.rotateStart).multiplyScalar(this.rotateSpeed);
       
       const element = this.domElement;
       this.rotateLeft(2 * Math.PI * rotateDelta.x / element.clientHeight);
+      this.rotateUp(2 * Math.PI * rotateDelta.y / element.clientHeight);
       
       this.rotateStart.copy(rotateEnd);
       this.update();
       
     } else if (this.state === 'PAN') {
-      if (this.enablePan === false) return;
+      if (!this.enablePan) return;
       
       const panEnd = new THREE.Vector2(event.clientX, event.clientY);
       const panDelta = new THREE.Vector2().subVectors(panEnd, this.panStart).multiplyScalar(this.panSpeed);
@@ -201,37 +215,97 @@ class OrbitControls {
     }
   }
 
-  private onMouseUp() {
-    document.removeEventListener('mousemove', this.onMouseMove.bind(this));
-    document.removeEventListener('mouseup', this.onMouseUp.bind(this));
+  private onMouseUp = () => {
+    document.removeEventListener('mousemove', this.onMouseMove);
+    document.removeEventListener('mouseup', this.onMouseUp);
     this.domElement.style.cursor = 'grab';
     this.state = 'NONE';
     
     setTimeout(() => {
       this.isUserInteracting = false;
-    }, 1000);
+    }, 100);
   }
 
-  private onMouseWheel(event: WheelEvent) {
-    if (this.enableZoom === false) return;
+  private onMouseWheel = (event: WheelEvent) => {
+    // if (!this.enableZoom) return;
     
     event.preventDefault();
+    event.stopPropagation();
+    
     this.isUserInteracting = true;
     
-    if (event.deltaY < 0) {
-      this.dollyIn(this.getZoomScale());
-    } else if (event.deltaY > 0) {
-      this.dollyOut(this.getZoomScale());
-    }
+    // if (event.deltaY < 0) {
+    //   this.dollyIn(this.getZoomScale());
+    // } else if (event.deltaY > 0) {
+    //   this.dollyOut(this.getZoomScale());
+    // }
     
     this.update();
     
     setTimeout(() => {
       this.isUserInteracting = false;
-    }, 1000);
+    }, 100);
   }
 
-  private onContextMenu(event: Event) {
+  // private touchStartPos = new THREE.Vector2();
+  private touchStartDist = 0;
+
+  private onTouchStart = (event: TouchEvent) => {
+    event.preventDefault();
+    this.isUserInteracting = true;
+    
+    if (event.touches.length === 1) {
+      this.state = 'ROTATE';
+      this.rotateStart.set(event.touches[0].pageX, event.touches[0].pageY);
+    } else if (event.touches.length === 2) {
+      this.state = 'ZOOM';
+      const dx = event.touches[0].pageX - event.touches[1].pageX;
+      const dy = event.touches[0].pageY - event.touches[1].pageY;
+      this.touchStartDist = Math.sqrt(dx * dx + dy * dy);
+    }
+  }
+
+  private onTouchMove = (event: TouchEvent) => {
+    event.preventDefault();
+    
+    if (event.touches.length === 1 && this.state === 'ROTATE') {
+      const rotateEnd = new THREE.Vector2(event.touches[0].pageX, event.touches[0].pageY);
+      const rotateDelta = new THREE.Vector2().subVectors(rotateEnd, this.rotateStart).multiplyScalar(this.rotateSpeed);
+      
+      const element = this.domElement;
+      this.rotateLeft(2 * Math.PI * rotateDelta.x / element.clientHeight);
+      this.rotateUp(2 * Math.PI * rotateDelta.y / element.clientHeight);
+      
+      this.rotateStart.copy(rotateEnd);
+      this.update();
+      
+    } else if (event.touches.length === 2 && this.state === 'ZOOM') {
+      const dx = event.touches[0].pageX - event.touches[1].pageX;
+      const dy = event.touches[0].pageY - event.touches[1].pageY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (this.touchStartDist > 0) {
+        const factor = distance / this.touchStartDist;
+        if (factor < 1) {
+          this.dollyOut(1 / factor);
+        } else {
+          this.dollyIn(factor);
+        }
+      }
+      
+      this.touchStartDist = distance;
+      this.update();
+    }
+  }
+
+  private onTouchEnd = () => {
+    this.state = 'NONE';
+    setTimeout(() => {
+      this.isUserInteracting = false;
+    }, 100);
+  }
+
+  private onContextMenu = (event: Event) => {
     event.preventDefault();
   }
 
@@ -239,12 +313,16 @@ class OrbitControls {
     this.sphericalDelta.theta -= angle;
   }
 
+  private rotateUp(angle: number) {
+    this.sphericalDelta.phi -= angle;
+  }
+
   private dollyIn(dollyScale: number) {
-    this.sphericalDelta.radius /= dollyScale;
+    this.scale /= dollyScale;
   }
 
   private dollyOut(dollyScale: number) {
-    this.sphericalDelta.radius *= dollyScale;
+    this.scale *= dollyScale;
   }
 
   private pan(deltaX: number, deltaY: number) {
@@ -269,9 +347,9 @@ class OrbitControls {
     this.target.add(pan);
   }
 
-  private getZoomScale() {
-    return Math.pow(0.95, this.zoomSpeed);
-  }
+  // private getZoomScale() {
+  //   return Math.pow(0.95, this.zoomSpeed);
+  // }
 
   public applyAutoRotate() {
     if (!this.isUserInteracting) {
@@ -284,13 +362,19 @@ class OrbitControls {
     const quat = new THREE.Quaternion().setFromUnitVectors(this.camera.up, new THREE.Vector3(0, 1, 0));
     const quatInverse = quat.clone().invert();
     
+    // const lastPosition = new THREE.Vector3().copy(this.camera.position);
+    
     offset.copy(this.camera.position).sub(this.target);
     offset.applyQuaternion(quat);
     
     this.spherical.setFromVector3(offset);
     this.spherical.theta += this.sphericalDelta.theta;
-    this.spherical.phi = Math.PI / 2;
+    this.spherical.phi += this.sphericalDelta.phi;
     
+    this.spherical.phi = Math.max(this.minPolarAngle, Math.min(this.maxPolarAngle, this.spherical.phi));
+    this.spherical.makeSafe();
+    
+    this.spherical.radius *= this.scale;
     this.spherical.radius = Math.max(this.minDistance, Math.min(this.maxDistance, this.spherical.radius));
     
     offset.setFromSpherical(this.spherical);
@@ -300,6 +384,7 @@ class OrbitControls {
     this.camera.lookAt(this.target);
     
     this.sphericalDelta.set(0, 0, 0);
+    this.scale = 1;
     
     return true;
   }
@@ -310,9 +395,14 @@ class OrbitControls {
   }
 
   public dispose() {
-    this.domElement.removeEventListener('mousedown', this.onMouseDown.bind(this));
-    this.domElement.removeEventListener('wheel', this.onMouseWheel.bind(this));
-    this.domElement.removeEventListener('contextmenu', this.onContextMenu.bind(this));
+    this.domElement.removeEventListener('mousedown', this.onMouseDown);
+    this.domElement.removeEventListener('wheel', this.onMouseWheel);
+    this.domElement.removeEventListener('contextmenu', this.onContextMenu);
+    this.domElement.removeEventListener('touchstart', this.onTouchStart);
+    this.domElement.removeEventListener('touchmove', this.onTouchMove);
+    this.domElement.removeEventListener('touchend', this.onTouchEnd);
+    document.removeEventListener('mousemove', this.onMouseMove);
+    document.removeEventListener('mouseup', this.onMouseUp);
   }
 }
 
@@ -337,8 +427,8 @@ interface STLViewerProps {
 
 const Scene: React.FC<STLViewerProps> = ({
   stlUrl = '/ROOTLIB/upper/grin-design-26.stl',
-  width = '100%',
-  height = '400px',
+  width = '',
+  height = '',
   showControls = true,
   autoRotate = true,
   modelColor = '',
@@ -347,10 +437,10 @@ const Scene: React.FC<STLViewerProps> = ({
   className = '',
   style = {},
   responsive = true,
-  minWidth = '200px',
-  minHeight = '200px',
-  maxWidth = '100%',
-  maxHeight = '100vh'
+  minWidth = '',
+  minHeight = '',
+  maxWidth = '',
+  maxHeight = ''
 }) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -488,12 +578,15 @@ const Scene: React.FC<STLViewerProps> = ({
             const controls = new OrbitControls(camera, renderer.domElement);
             controls.setTarget(center.x, center.y, center.z);
             controls.enableRotate = true;
-            controls.enableZoom = true;
-            controls.enablePan = false;
-            controls.rotateSpeed = 0.5;
-            controls.zoomSpeed = 1.2;
+            // controls.enableZoom = true;
+            controls.enablePan = true;
+            controls.rotateSpeed = 0.8;
+            // controls.zoomSpeed = 1.2;
+            controls.panSpeed = 0.5;
             controls.minDistance = radius * 1.2;
             controls.maxDistance = radius * 10;
+            controls.minPolarAngle = 0;
+            controls.maxPolarAngle = Math.PI;
             controlsRef.current = controls;
             
             renderer.domElement.style.cursor = 'grab';
