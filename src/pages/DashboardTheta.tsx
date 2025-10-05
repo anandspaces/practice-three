@@ -80,19 +80,22 @@ export default function DashboardTheta() {
                   <div className="absolute bottom-0 right-0 w-16 sm:w-20 h-16 sm:h-20 border-b-2 border-r-2 border-gray-400/30 rounded-br-2xl pointer-events-none z-10"></div>
                   
                   <Scene
-                    stlUrl1="/lower.stl"
-                    stlUrl2="/upper.stl"
-                    stlUrl3="/ROOTLIB/combined/grin-design-26.stl"
+                    stlUrl1="/Theta/upper_new3.stl"
+                    stlUrl2="/Theta/lower_new.stl"
+                    stlUrl3="/Theta/crown_new.stl"
                     model1Transform={{
-                      position: { x: 0, y: 5, z: 5 },
+                      position: { x: 0, y: 4, z: 0 },
+                      rotation: { x: Math.PI/2, y: Math.PI, z: Math.PI * 5/4 },
                       scale: 0.7
                     }}
                     model2Transform={{
-                      position: { x: 0, y: -5, z: -5 },
+                      position: { x: 0, y: -4, z: 0 },
+                      rotation: { x: Math.PI/2, y: Math.PI, z: Math.PI * 5/4 },
                       scale: 0.7
                     }}
                     model3Transform={{
-                      position: { x: 0, y: 0, z: 0 },
+                      position: { x: 10, y: -5, z: -15 },
+                      rotation: { x: Math.PI/2, y: Math.PI, z: Math.PI * 5/4 },
                       scale: 0.7
                     }}
                     width="100%"
