@@ -347,9 +347,24 @@ const Scene: React.FC<STLViewerProps> = ({
   autoRotate = false,
   modelColor = '#c0c0c0',
   backgroundColor = 'transparent',
-  model1Transform = {},
-  model2Transform = {},
-  model3Transform = {},
+  model1Transform = {
+    position: { x: 5, y: 5, z: 5 },
+    rotation: { x: 0, y: 0, z: 0 },
+    scale: 0.7,
+    visible: true,
+  },
+  model2Transform = {
+    position: { x: -5, y: -5, z: -5 },
+    rotation: { x: 0, y: 0, z: 0 },
+    scale: 0.7,
+    visible: true,
+  },
+  model3Transform = {
+    position: { x: 0, y: 0, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    scale: 0.7,
+    visible: true,
+  },
 }) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -364,38 +379,15 @@ const Scene: React.FC<STLViewerProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Default transforms
-  const defaultModel1 = {
-    position: { x: 5, y: 5, z: 5 },
-    rotation: { x: 0, y: 0, z: 0 },
-    scale: 0.7,
-    visible: true,
-    ...model1Transform
-  };
-
-  const defaultModel2 = {
-    position: { x: -5, y: -5, z: -5 },
-    rotation: { x: 0, y: 0, z: 0 },
-    scale: 0.7,
-    visible: true,
-    ...model2Transform
-  };
-
-  const defaultModel3 = {
-    position: { x: 0, y: 0, z: 0 },
-    rotation: { x: 0, y: 0, z: 0 },
-    scale: 0.7,
-    visible: true,
-    ...model3Transform
-  };
-
   useEffect(() => {
     const container = mountRef.current!;
     
     try {
+      // Create scene
       const scene = new THREE.Scene();
       sceneRef.current = scene;
       
+      // Create camera
       const camera = new THREE.PerspectiveCamera(
         45,
         container.clientWidth / container.clientHeight,
@@ -404,6 +396,7 @@ const Scene: React.FC<STLViewerProps> = ({
       );
       cameraRef.current = camera;
       
+      // Create renderer
       const renderer = new THREE.WebGLRenderer({ 
         antialias: true,
         alpha: true,
@@ -418,6 +411,7 @@ const Scene: React.FC<STLViewerProps> = ({
       
       container.appendChild(renderer.domElement);
 
+      // Add lights
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
       scene.add(ambientLight);
       
@@ -429,6 +423,7 @@ const Scene: React.FC<STLViewerProps> = ({
       directionalLight2.position.set(-10, -10, -5);
       scene.add(directionalLight2);
 
+      // Load model function
       const loadModel = (url: string, modelRef: React.MutableRefObject<THREE.Mesh | null>): Promise<void> => {
         return new Promise((resolve, reject) => {
           const loader = new STLLoader();
@@ -436,7 +431,6 @@ const Scene: React.FC<STLViewerProps> = ({
             url,
             (geometry) => {
               geometry.center();
-              geometry.rotateX(Math.PI);
               geometry.computeBoundingBox();
               geometry.computeBoundingSphere();
 
@@ -463,38 +457,95 @@ const Scene: React.FC<STLViewerProps> = ({
       setIsLoading(true);
       setError(null);
       
+      // Load all models
       Promise.all([
         loadModel(stlUrl1, model1Ref),
         loadModel(stlUrl2, model2Ref),
         loadModel(stlUrl3, model3Ref)
       ]).then(() => {
-        if (model1Ref.current && model1Ref.current.geometry.boundingSphere) {
-          const boundingSphere = model1Ref.current.geometry.boundingSphere;
-          const center = boundingSphere.center;
-          const radius = boundingSphere.radius * 0.7;
-          
-          const containerAspect = container.clientWidth / container.clientHeight;
-          const distance = radius * (containerAspect < 1 ? 3.5 : 2.5);
-          
-          camera.position.set(
-            center.x + distance * 0.7,
-            center.y + distance * 0.7,
-            center.z + distance * 0.9
+        // Apply transforms BEFORE setting up camera
+        if (model1Ref.current) {
+          model1Ref.current.position.set(
+            model1Transform?.position?.x ?? 0, 
+            model1Transform?.position?.y ?? 0, 
+            model1Transform?.position?.z ?? 0
           );
-          
-          const controls = new OrbitControls(camera, renderer.domElement);
-          controls.setTarget(center.x, center.y, center.z);
-          controls.enableRotate = true;
-          controls.enableZoom = true;
-          controls.enablePan = false;
-          controls.rotateSpeed = 0.5;
-          controls.zoomSpeed = 1.2;
-          controls.minDistance = radius * 1.2;
-          controls.maxDistance = radius * 10;
-          controlsRef.current = controls;
-          
-          renderer.domElement.style.cursor = 'grab';
+          model1Ref.current.rotation.set(
+            model1Transform?.rotation?.x ?? 0, 
+            model1Transform?.rotation?.y ?? 0, 
+            model1Transform?.rotation?.z ?? 0
+          );
+          model1Ref.current.scale.setScalar(model1Transform?.scale ?? 1);
+          model1Ref.current.visible = model1Transform?.visible ?? true;
         }
+        
+        if (model2Ref.current) {
+          model2Ref.current.position.set(
+            model2Transform?.position?.x ?? 0,
+            model2Transform?.position?.y ?? 0,
+            model2Transform?.position?.z ?? 0
+          );
+          model2Ref.current.rotation.set(
+            model2Transform?.rotation?.x ?? 0,
+            model2Transform?.rotation?.y ?? 0,
+            model2Transform?.rotation?.z ?? 0
+          );
+          model2Ref.current.scale.setScalar(model2Transform?.scale ?? 1);
+          model2Ref.current.visible = model2Transform?.visible ?? true;
+        }
+        
+        if (model3Ref.current) {
+          model3Ref.current.position.set(
+            model3Transform?.position?.x ?? 0,
+            model3Transform?.position?.y ?? 0,
+            model3Transform?.position?.z ?? 0
+          );
+          model3Ref.current.rotation.set(
+            model3Transform?.rotation?.x ?? 0,
+            model3Transform?.rotation?.y ?? 0,
+            model3Transform?.rotation?.z ?? 0
+          );
+          model3Ref.current.scale.setScalar(model3Transform?.scale ?? 1);
+          model3Ref.current.visible = model3Transform?.visible ?? true;
+        }
+        
+        // Calculate bounding box of all visible models
+        const box = new THREE.Box3();
+        if (model1Ref.current && model1Ref.current.visible) {
+          box.expandByObject(model1Ref.current);
+        }
+        if (model2Ref.current && model2Ref.current.visible) {
+          box.expandByObject(model2Ref.current);
+        }
+        if (model3Ref.current && model3Ref.current.visible) {
+          box.expandByObject(model3Ref.current);
+        }
+        
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        
+        const containerAspect = container.clientWidth / container.clientHeight;
+        const distance = maxDim * (containerAspect < 1 ? 2.5 : 2);
+        
+        camera.position.set(
+          center.x + distance * 0.7,
+          center.y + distance * 0.7,
+          center.z + distance * 0.9
+        );
+        
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.setTarget(center.x, center.y, center.z);
+        controls.enableRotate = true;
+        controls.enableZoom = true;
+        controls.enablePan = false;
+        controls.rotateSpeed = 0.5;
+        controls.zoomSpeed = 1.2;
+        controls.minDistance = maxDim * 0.8;
+        controls.maxDistance = maxDim * 10;
+        controlsRef.current = controls;
+        
+        renderer.domElement.style.cursor = 'grab';
 
         setIsLoading(false);
       }).catch((error) => {
@@ -503,6 +554,7 @@ const Scene: React.FC<STLViewerProps> = ({
         setIsLoading(false);
       });
 
+      // Animation loop
       const animate = () => {
         animationRef.current = requestAnimationFrame(animate);
         
@@ -518,6 +570,7 @@ const Scene: React.FC<STLViewerProps> = ({
       };
       animate();
 
+      // Handle window resize
       const handleResize = () => {
         if (camera && renderer && container) {
           const width = container.clientWidth;
@@ -531,6 +584,7 @@ const Scene: React.FC<STLViewerProps> = ({
       
       window.addEventListener('resize', handleResize);
       
+      // Cleanup
       return () => {
         if (animationRef.current) {
           cancelAnimationFrame(animationRef.current);
@@ -549,59 +603,59 @@ const Scene: React.FC<STLViewerProps> = ({
       setError('Failed to initialize 3D viewer');
       setIsLoading(false);
     }
-  }, [stlUrl1, stlUrl2, stlUrl3, autoRotate, modelColor]);
+  }, [stlUrl1, stlUrl2, stlUrl3, autoRotate, modelColor, model1Transform, model2Transform, model3Transform]);
 
-  // Apply model 1 transforms
+  // Apply model 1 transforms (kept for dynamic updates)
   useEffect(() => {
     if (model1Ref.current) {
       model1Ref.current.position.set(
-        defaultModel1.position.x, 
-        defaultModel1.position.y, 
-        defaultModel1.position.z
+        model1Transform?.position?.x ?? 0, 
+        model1Transform?.position?.y ?? 0, 
+        model1Transform?.position?.z ?? 0
       );
       model1Ref.current.rotation.set(
-        defaultModel1.rotation.x, 
-        defaultModel1.rotation.y, 
-        defaultModel1.rotation.z
+        model1Transform?.rotation?.x ?? 0, 
+        model1Transform?.rotation?.y ?? 0, 
+        model1Transform?.rotation?.z ?? 0
       );
-      model1Ref.current.scale.setScalar(defaultModel1.scale);
-      model1Ref.current.visible = defaultModel1.visible;
+      model1Ref.current.scale.setScalar(model1Transform?.scale ?? 1);
+      model1Ref.current.visible = model1Transform?.visible ?? true;
     }
   }, [model1Transform]);
 
-  // Apply model 2 transforms
+  // Apply model 2 transforms (kept for dynamic updates)
   useEffect(() => {
     if (model2Ref.current) {
       model2Ref.current.position.set(
-        defaultModel2.position.x, 
-        defaultModel2.position.y, 
-        defaultModel2.position.z
+        model2Transform?.position?.x ?? 0,
+        model2Transform?.position?.y ?? 0,
+        model2Transform?.position?.z ?? 0
       );
       model2Ref.current.rotation.set(
-        defaultModel2.rotation.x, 
-        defaultModel2.rotation.y, 
-        defaultModel2.rotation.z
+        model2Transform?.rotation?.x ?? 0,
+        model2Transform?.rotation?.y ?? 0,
+        model2Transform?.rotation?.z ?? 0
       );
-      model2Ref.current.scale.setScalar(defaultModel2.scale);
-      model2Ref.current.visible = defaultModel2.visible;
+      model2Ref.current.scale.setScalar(model2Transform?.scale ?? 1);
+      model2Ref.current.visible = model2Transform?.visible ?? true;
     }
   }, [model2Transform]);
 
-  // Apply model 3 transforms
+  // Apply model 3 transforms (kept for dynamic updates)
   useEffect(() => {
     if (model3Ref.current) {
       model3Ref.current.position.set(
-        defaultModel3.position.x, 
-        defaultModel3.position.y, 
-        defaultModel3.position.z
+        model3Transform?.position?.x ?? 0,
+        model3Transform?.position?.y ?? 0,
+        model3Transform?.position?.z ?? 0
       );
       model3Ref.current.rotation.set(
-        defaultModel3.rotation.x, 
-        defaultModel3.rotation.y, 
-        defaultModel3.rotation.z
+        model3Transform?.rotation?.x ?? 0,
+        model3Transform?.rotation?.y ?? 0,
+        model3Transform?.rotation?.z ?? 0
       );
-      model3Ref.current.scale.setScalar(defaultModel3.scale);
-      model3Ref.current.visible = defaultModel3.visible;
+      model3Ref.current.scale.setScalar(model3Transform?.scale ?? 1);
+      model3Ref.current.visible = model3Transform?.visible ?? true;
     }
   }, [model3Transform]);
 
