@@ -143,6 +143,8 @@ class OrbitControls {
   
   private state = 'NONE';
   private isUserInteracting = false;
+  private totalRotation = 0;
+  public onRotationChange?: (rotation: number) => void;
 
   constructor(camera: THREE.PerspectiveCamera, domElement: HTMLElement) {
     this.camera = camera;
@@ -184,7 +186,14 @@ class OrbitControls {
       const rotateDelta = new THREE.Vector2().subVectors(rotateEnd, this.rotateStart).multiplyScalar(this.rotateSpeed);
       
       const element = this.domElement;
-      this.rotateLeft(2 * Math.PI * rotateDelta.x / element.clientHeight);
+      const rotationAngle = 2 * Math.PI * rotateDelta.x / element.clientHeight;
+      this.rotateLeft(rotationAngle);
+      
+      this.totalRotation += rotationAngle;
+      
+      if (this.onRotationChange) {
+        this.onRotationChange(this.totalRotation);
+      }
       
       this.rotateStart.copy(rotateEnd);
       this.update();
@@ -276,6 +285,11 @@ class OrbitControls {
   public applyAutoRotate() {
     if (!this.isUserInteracting) {
       this.sphericalDelta.theta = -0.01;
+      this.totalRotation -= 0.01;
+      
+      if (this.onRotationChange) {
+        this.onRotationChange(this.totalRotation);
+      }
     }
   }
 
@@ -315,6 +329,18 @@ class OrbitControls {
     this.domElement.removeEventListener('contextmenu', this.onContextMenu.bind(this));
   }
 }
+
+// Helper function to calculate opacity based on rotation
+const calculateOpacity = (rotation: number): number => {
+  const normalizedRotation = ((rotation % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
+  const degrees = (normalizedRotation * 180) / Math.PI;
+  
+  if (degrees <= 180) {
+    return 1 - (degrees / 180); // Decreases from 1.0 to 0
+  } else {
+    return (degrees - 180) / 180; // Increases from 0 to 1.0
+  }
+};
 
 interface ModelTransform {
   position?: { x: number; y: number; z: number };
@@ -383,11 +409,9 @@ const Scene: React.FC<STLViewerProps> = ({
     const container = mountRef.current!;
     
     try {
-      // Create scene
       const scene = new THREE.Scene();
       sceneRef.current = scene;
       
-      // Create camera
       const camera = new THREE.PerspectiveCamera(
         45,
         container.clientWidth / container.clientHeight,
@@ -396,7 +420,6 @@ const Scene: React.FC<STLViewerProps> = ({
       );
       cameraRef.current = camera;
       
-      // Create renderer
       const renderer = new THREE.WebGLRenderer({ 
         antialias: true,
         alpha: true,
@@ -411,7 +434,6 @@ const Scene: React.FC<STLViewerProps> = ({
       
       container.appendChild(renderer.domElement);
 
-      // Add lights
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
       scene.add(ambientLight);
       
@@ -423,7 +445,6 @@ const Scene: React.FC<STLViewerProps> = ({
       directionalLight2.position.set(-10, -10, -5);
       scene.add(directionalLight2);
 
-      // Load model function
       const loadModel = (url: string, modelRef: React.MutableRefObject<THREE.Mesh | null>): Promise<void> => {
         return new Promise((resolve, reject) => {
           const loader = new STLLoader();
@@ -434,12 +455,10 @@ const Scene: React.FC<STLViewerProps> = ({
               geometry.computeBoundingBox();
               geometry.computeBoundingSphere();
 
-              const material = new THREE.MeshPhysicalMaterial({
+              const material = new THREE.MeshStandardMaterial({
                 color: modelColor,
-                metalness: 0.5,
-                roughness: 0.2,
-                clearcoat: 1,
-                clearcoatRoughness: 0
+                metalness: 0,
+                roughness: 1,
               });
               
               const model = new THREE.Mesh(geometry, material);
@@ -457,13 +476,11 @@ const Scene: React.FC<STLViewerProps> = ({
       setIsLoading(true);
       setError(null);
       
-      // Load all models
       Promise.all([
         loadModel(stlUrl1, model1Ref),
         loadModel(stlUrl2, model2Ref),
         loadModel(stlUrl3, model3Ref)
       ]).then(() => {
-        // Apply transforms BEFORE setting up camera
         if (model1Ref.current) {
           model1Ref.current.position.set(
             model1Transform?.position?.x ?? 0, 
@@ -477,6 +494,11 @@ const Scene: React.FC<STLViewerProps> = ({
           );
           model1Ref.current.scale.setScalar(model1Transform?.scale ?? 1);
           model1Ref.current.visible = model1Transform?.visible ?? true;
+          
+          if (model1Ref.current.material instanceof THREE.MeshStandardMaterial) {
+            model1Ref.current.material.transparent = true;
+            model1Ref.current.material.opacity = 1;
+          }
         }
         
         if (model2Ref.current) {
@@ -492,6 +514,11 @@ const Scene: React.FC<STLViewerProps> = ({
           );
           model2Ref.current.scale.setScalar(model2Transform?.scale ?? 1);
           model2Ref.current.visible = model2Transform?.visible ?? true;
+          
+          if (model2Ref.current.material instanceof THREE.MeshStandardMaterial) {
+            model2Ref.current.material.transparent = true;
+            model2Ref.current.material.opacity = 1;
+          }
         }
         
         if (model3Ref.current) {
@@ -509,7 +536,6 @@ const Scene: React.FC<STLViewerProps> = ({
           model3Ref.current.visible = model3Transform?.visible ?? true;
         }
         
-        // Calculate bounding box of all visible models
         const box = new THREE.Box3();
         if (model1Ref.current && model1Ref.current.visible) {
           box.expandByObject(model1Ref.current);
@@ -543,6 +569,21 @@ const Scene: React.FC<STLViewerProps> = ({
         controls.zoomSpeed = 1.2;
         controls.minDistance = maxDim * 0.8;
         controls.maxDistance = maxDim * 10;
+        
+        controls.onRotationChange = (rotation: number) => {
+          const opacity = calculateOpacity(rotation);
+          
+          // Update both models with material.needsUpdate flag
+          if (model1Ref.current && model1Ref.current.material instanceof THREE.MeshStandardMaterial) {
+            model1Ref.current.material.opacity = opacity;
+            model1Ref.current.material.needsUpdate = true;
+          }
+          if (model2Ref.current && model2Ref.current.material instanceof THREE.MeshStandardMaterial) {
+            model2Ref.current.material.opacity = opacity;
+            model2Ref.current.material.needsUpdate = true;
+          }
+        };
+        
         controlsRef.current = controls;
         
         renderer.domElement.style.cursor = 'grab';
@@ -554,7 +595,6 @@ const Scene: React.FC<STLViewerProps> = ({
         setIsLoading(false);
       });
 
-      // Animation loop
       const animate = () => {
         animationRef.current = requestAnimationFrame(animate);
         
@@ -570,7 +610,6 @@ const Scene: React.FC<STLViewerProps> = ({
       };
       animate();
 
-      // Handle window resize
       const handleResize = () => {
         if (camera && renderer && container) {
           const width = container.clientWidth;
@@ -584,7 +623,6 @@ const Scene: React.FC<STLViewerProps> = ({
       
       window.addEventListener('resize', handleResize);
       
-      // Cleanup
       return () => {
         if (animationRef.current) {
           cancelAnimationFrame(animationRef.current);
@@ -605,7 +643,6 @@ const Scene: React.FC<STLViewerProps> = ({
     }
   }, [stlUrl1, stlUrl2, stlUrl3, autoRotate, modelColor, model1Transform, model2Transform, model3Transform]);
 
-  // Apply model 1 transforms (kept for dynamic updates)
   useEffect(() => {
     if (model1Ref.current) {
       model1Ref.current.position.set(
@@ -623,7 +660,6 @@ const Scene: React.FC<STLViewerProps> = ({
     }
   }, [model1Transform]);
 
-  // Apply model 2 transforms (kept for dynamic updates)
   useEffect(() => {
     if (model2Ref.current) {
       model2Ref.current.position.set(
@@ -641,7 +677,6 @@ const Scene: React.FC<STLViewerProps> = ({
     }
   }, [model2Transform]);
 
-  // Apply model 3 transforms (kept for dynamic updates)
   useEffect(() => {
     if (model3Ref.current) {
       model3Ref.current.position.set(
