@@ -22,11 +22,6 @@ export default function DashboardEpsilon() {
               <div className="absolute inset-0 bg-gradient-to-br from-gray-600/20 to-transparent pointer-events-none"></div>
               
               <div className="relative z-10">
-                {/* Badge */}
-                <div className="inline-flex items-center gap-2 bg-gray-500/20 backdrop-blur-sm border border-gray-400/30 rounded-full px-4 py-2 mb-6">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-                  <span className="text-gray-200 text-sm font-medium">AI-Powered Technology</span>
-                </div>
 
                 {/* Main heading with sophisticated styling */}
                 <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
@@ -115,15 +110,6 @@ export default function DashboardEpsilon() {
 
         </div>
 
-        {/* Scroll indicator */}
-        <div className="text-center mt-8">
-          <div className="inline-flex items-center gap-2 text-gray-200/60 text-sm animate-bounce">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-            </svg>
-            <span>Explore Features</span>
-          </div>
-        </div>
       </div>
     </div>
   );
