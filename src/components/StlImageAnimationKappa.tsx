@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
-// STL Loader implementation
 class STLLoader extends THREE.Loader {
   load(
     url: string, 
@@ -122,7 +121,6 @@ class STLLoader extends THREE.Loader {
   }
 }
 
-// Orbit Controls implementation for Orthographic Camera
 class OrbitControls {
   private camera: THREE.OrthographicCamera;
   private domElement: HTMLElement;
@@ -156,7 +154,6 @@ class OrbitControls {
 
   private addEventListeners() {
     this.domElement.addEventListener('mousedown', this.onMouseDown.bind(this));
-    // this.domElement.addEventListener('wheel', this.onMouseWheel.bind(this));
     this.domElement.addEventListener('contextmenu', this.onContextMenu.bind(this));
   }
 
@@ -221,25 +218,6 @@ class OrbitControls {
     }, 1000);
   }
 
-  // private onMouseWheel(event: WheelEvent) {
-  //   if (this.enableZoom === false) return;
-    
-  //   event.preventDefault();
-  //   this.isUserInteracting = true;
-    
-  //   if (event.deltaY < 0) {
-  //     this.dollyIn(this.getZoomScale());
-  //   } else if (event.deltaY > 0) {
-  //     this.dollyOut(this.getZoomScale());
-  //   }
-    
-  //   this.update();
-    
-  //   setTimeout(() => {
-  //     this.isUserInteracting = false;
-  //   }, 1000);
-  // }
-
   private onContextMenu(event: Event) {
     event.preventDefault();
   }
@@ -248,23 +226,10 @@ class OrbitControls {
     this.sphericalDelta.theta -= angle;
   }
 
-  // private dollyIn(dollyScale: number) {
-  //   this.camera.zoom *= dollyScale;
-  //   this.camera.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.camera.zoom));
-  //   this.camera.updateProjectionMatrix();
-  // }
-
-  // private dollyOut(dollyScale: number) {
-  //   this.camera.zoom /= dollyScale;
-  //   this.camera.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.camera.zoom));
-  //   this.camera.updateProjectionMatrix();
-  // }
-
   private pan(deltaX: number, deltaY: number) {
     const offset = new THREE.Vector3();
     offset.copy(this.camera.position).sub(this.target);
     
-    // For orthographic camera, use the visible area based on zoom
     const scale = (this.camera.top - this.camera.bottom) / this.camera.zoom / this.domElement.clientHeight;
     
     const panLeft = new THREE.Vector3();
@@ -281,10 +246,6 @@ class OrbitControls {
     this.camera.position.add(pan);
     this.target.add(pan);
   }
-
-  // private getZoomScale() {
-  //   return Math.pow(0.95, this.zoomSpeed);
-  // }
 
   public applyAutoRotate() {
     if (!this.isUserInteracting) {
@@ -329,7 +290,6 @@ class OrbitControls {
 
   public dispose() {
     this.domElement.removeEventListener('mousedown', this.onMouseDown.bind(this));
-    // this.domElement.removeEventListener('wheel', this.onMouseWheel.bind(this));
     this.domElement.removeEventListener('contextmenu', this.onContextMenu.bind(this));
   }
 }
@@ -339,23 +299,211 @@ const calculateOpacity = (rotation: number): number => {
   const normalizedRotation = ((rotation % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
   const degrees = (normalizedRotation * 180) / Math.PI;
   
-  // Between 135° and 225°, opacity is 0
   if (degrees >= 135 && degrees <= 225) {
     return 0;
   }
   
-  // Transition zone: 90° to 135°
   if (degrees > 90 && degrees < 135) {
     return 1 - ((degrees - 90) / 45);
   }
   
-  // Transition zone: 225° to 270°
   if (degrees > 225 && degrees < 270) {
     return (degrees - 225) / 45;
   }
   
-  // Fully visible: 0° to 90° and 270° to 360°
   return 1;
+};
+
+// Animation configuration for model transformation
+interface ModelAnimationConfig {
+  startScale: number;
+  peakScale: number;
+  startPosition: { x: number; y: number; z: number };
+  peakPosition: { x: number; y: number; z: number };
+  startRotation: { x: number; y: number; z: number };
+  peakRotation: { x: number; y: number; z: number };
+}
+
+// Model 1 transformation (upper jaw) - animates 0° to 135° and 225° to 360°
+const calculateModel1Transform = (
+  rotation: number,
+  config: ModelAnimationConfig
+): { scale: number; position: THREE.Vector3; rotation: THREE.Euler } => {
+  const normalizedRotation = ((rotation % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
+  const degrees = (normalizedRotation * 180) / Math.PI;
+
+  let progress = 0;
+
+  // Forward animation: 0° to 135°
+  if (degrees >= 0 && degrees <= 135) {
+    progress = degrees / 135;
+    
+    const easedProgress =
+      progress < 0.5
+        ? 2 * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+    const scale =
+      config.startScale +
+      (config.peakScale - config.startScale) * easedProgress;
+
+    const position = new THREE.Vector3(
+      config.startPosition.x +
+        (config.peakPosition.x - config.startPosition.x) * easedProgress,
+      config.startPosition.y +
+        (config.peakPosition.y - config.startPosition.y) * easedProgress,
+      config.startPosition.z +
+        (config.peakPosition.z - config.startPosition.z) * easedProgress
+    );
+
+    const eulerRotation = new THREE.Euler(
+      config.startRotation.x +
+        (config.peakRotation.x - config.startRotation.x) * easedProgress,
+      config.startRotation.y +
+        (config.peakRotation.y - config.startRotation.y) * easedProgress,
+      config.startRotation.z +
+        (config.peakRotation.z - config.startRotation.z) * easedProgress
+    );
+
+    return { scale, position, rotation: eulerRotation };
+  }
+
+  // Reverse animation: 225° to 360°
+  if (degrees >= 225 && degrees <= 360) {
+    progress = (degrees - 225) / 135;
+    
+    const easedProgress =
+      progress < 0.5
+        ? 2 * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+    // Interpolate from peak back to start
+    const scale =
+      config.peakScale -
+      (config.peakScale - config.startScale) * easedProgress;
+
+    const position = new THREE.Vector3(
+      config.peakPosition.x -
+        (config.peakPosition.x - config.startPosition.x) * easedProgress,
+      config.peakPosition.y -
+        (config.peakPosition.y - config.startPosition.y) * easedProgress,
+      config.peakPosition.z -
+        (config.peakPosition.z - config.startPosition.z) * easedProgress
+    );
+
+    const eulerRotation = new THREE.Euler(
+      config.peakRotation.x -
+        (config.peakRotation.x - config.startRotation.x) * easedProgress,
+      config.peakRotation.y -
+        (config.peakRotation.y - config.startRotation.y) * easedProgress,
+      config.peakRotation.z -
+        (config.peakRotation.z - config.startRotation.z) * easedProgress
+    );
+
+    return { scale, position, rotation: eulerRotation };
+  }
+
+  // Between 135° and 225°: stay at peak
+  if (degrees > 135 && degrees < 225) {
+    return {
+      scale: config.peakScale,
+      position: new THREE.Vector3(
+        config.peakPosition.x,
+        config.peakPosition.y,
+        config.peakPosition.z
+      ),
+      rotation: new THREE.Euler(
+        config.peakRotation.x,
+        config.peakRotation.y,
+        config.peakRotation.z
+      ),
+    };
+  }
+
+  // Default: start position
+  return {
+    scale: config.startScale,
+    position: new THREE.Vector3(
+      config.startPosition.x,
+      config.startPosition.y,
+      config.startPosition.z
+    ),
+    rotation: new THREE.Euler(
+      config.startRotation.x,
+      config.startRotation.y,
+      config.startRotation.z
+    ),
+  };
+};
+
+// Model 2 transformation (lower jaw) - same as model 1
+const calculateModel2Transform = (
+  rotation: number,
+  config: ModelAnimationConfig
+): { scale: number; position: THREE.Vector3; rotation: THREE.Euler } => {
+  return calculateModel1Transform(rotation, config);
+};
+
+// Model 3 transformation (middle element) - animates 135° to 225°
+const calculateModel3Transform = (
+  rotation: number,
+  config: ModelAnimationConfig
+): { scale: number; position: THREE.Vector3; rotation: THREE.Euler } => {
+  const normalizedRotation = ((rotation % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
+  const degrees = (normalizedRotation * 180) / Math.PI;
+
+  let progress = 0;
+
+  if (degrees >= 135 && degrees <= 225) {
+    if (degrees <= 180) {
+      progress = (degrees - 135) / 45;
+    } else {
+      progress = 1 - ((degrees - 180) / 45);
+    }
+
+    const easedProgress =
+      progress < 0.5
+        ? 2 * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+    const scale =
+      config.startScale +
+      (config.peakScale - config.startScale) * easedProgress;
+
+    const position = new THREE.Vector3(
+      config.startPosition.x +
+        (config.peakPosition.x - config.startPosition.x) * easedProgress,
+      config.startPosition.y +
+        (config.peakPosition.y - config.startPosition.y) * easedProgress,
+      config.startPosition.z +
+        (config.peakPosition.z - config.startPosition.z) * easedProgress
+    );
+
+    const eulerRotation = new THREE.Euler(
+      config.startRotation.x +
+        (config.peakRotation.x - config.startRotation.x) * easedProgress,
+      config.startRotation.y +
+        (config.peakRotation.y - config.startRotation.y) * easedProgress,
+      config.startRotation.z +
+        (config.peakRotation.z - config.startRotation.z) * easedProgress
+    );
+
+    return { scale, position, rotation: eulerRotation };
+  }
+
+  return {
+    scale: config.startScale,
+    position: new THREE.Vector3(
+      config.startPosition.x,
+      config.startPosition.y,
+      config.startPosition.z
+    ),
+    rotation: new THREE.Euler(
+      config.startRotation.x,
+      config.startRotation.y,
+      config.startRotation.z
+    ),
+  };
 };
 
 interface ModelTransform {
@@ -378,6 +526,9 @@ interface STLViewerProps {
   model2Transform?: ModelTransform;
   model3Transform?: ModelTransform;
   showControls?: boolean;
+  model1AnimationConfig?: ModelAnimationConfig;
+  model2AnimationConfig?: ModelAnimationConfig;
+  model3AnimationConfig?: ModelAnimationConfig;
 }
 
 const Scene: React.FC<STLViewerProps> = ({
@@ -386,17 +537,17 @@ const Scene: React.FC<STLViewerProps> = ({
   stlUrl3 = '/ROOTLIB/combined/grin-design-26.stl',
   width = '100%',
   height = '600px',
-  autoRotate = false,
+  autoRotate = true,
   modelColor = '#c0c0c0',
-  backgroundColor = 'transparent',
+  backgroundColor = '#1a1a1a',
   model1Transform = {
-    position: { x: 5, y: 5, z: 5 },
+    position: { x: 0, y: 5, z: 0 },
     rotation: { x: 0, y: 0, z: 0 },
     scale: 0.7,
     visible: true,
   },
   model2Transform = {
-    position: { x: -5, y: -5, z: -5 },
+    position: { x: 0, y: -5, z: 0 },
     rotation: { x: 0, y: 0, z: 0 },
     scale: 0.7,
     visible: true,
@@ -406,6 +557,30 @@ const Scene: React.FC<STLViewerProps> = ({
     rotation: { x: 0, y: 0, z: 0 },
     scale: 0.7,
     visible: true,
+  },
+  model1AnimationConfig = {
+    startScale: 0.7,
+    peakScale: 0.7,
+    startPosition: { x: 0, y: 5, z: 0 },
+    peakPosition: { x: 0, y: 15, z: 0 },
+    startRotation: { x: 0, y: 0, z: 0 },
+    peakRotation: { x: 0, y: 0, z: 0 },
+  },
+  model2AnimationConfig = {
+    startScale: 0.7,
+    peakScale: 0.7,
+    startPosition: { x: 0, y: -5, z: 0 },
+    peakPosition: { x: 0, y: -15, z: 0 },
+    startRotation: { x: 0, y: 0, z: 0 },
+    peakRotation: { x: 0, y: 0, z: 0 },
+  },
+  model3AnimationConfig = {
+    startScale: 0.7,
+    peakScale: 1.5,
+    startPosition: { x: 0, y: 0, z: 0 },
+    peakPosition: { x: 0, y: 0, z: 0 },
+    startRotation: { x: 0, y: 0, z: 0 },
+    peakRotation: { x: 0, y: 0, z: 0 },
   },
 }) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -465,7 +640,7 @@ const Scene: React.FC<STLViewerProps> = ({
       directionalLight2.position.set(-10, -10, -5);
       scene.add(directionalLight2);
 
-      const loadModel = (url: string, modelRef: React.MutableRefObject<THREE.Mesh | null>): Promise<void> => {
+      const loadModel = (url: string, modelRef: React.RefObject<THREE.Mesh | null>): Promise<void> => {
         return new Promise((resolve, reject) => {
           const loader = new STLLoader();
           loader.load(
@@ -571,7 +746,6 @@ const Scene: React.FC<STLViewerProps> = ({
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
         
-        // Position camera for orthographic view
         const distance = maxDim * 3;
         camera.position.set(
           center.x + distance * 0.5,
@@ -579,7 +753,6 @@ const Scene: React.FC<STLViewerProps> = ({
           center.z + distance * 0.5
         );
         
-        // Adjust camera zoom to fit the model
         camera.zoom = (frustumSize / maxDim) * 0.8;
         camera.updateProjectionMatrix();
         
@@ -599,10 +772,25 @@ const Scene: React.FC<STLViewerProps> = ({
           if (model1Ref.current && model1Ref.current.material instanceof THREE.MeshStandardMaterial) {
             model1Ref.current.material.opacity = opacity;
             model1Ref.current.material.needsUpdate = true;
+            const transform = calculateModel1Transform(rotation, model1AnimationConfig);
+            model1Ref.current.scale.setScalar(transform.scale);
+            model1Ref.current.position.copy(transform.position);
+            model1Ref.current.rotation.copy(transform.rotation);
           }
           if (model2Ref.current && model2Ref.current.material instanceof THREE.MeshStandardMaterial) {
             model2Ref.current.material.opacity = opacity;
             model2Ref.current.material.needsUpdate = true;
+            const transform = calculateModel2Transform(rotation, model2AnimationConfig);
+            model2Ref.current.scale.setScalar(transform.scale);
+            model2Ref.current.position.copy(transform.position);
+            model2Ref.current.rotation.copy(transform.rotation);
+          }
+          
+          if (model3Ref.current) {
+            const transform = calculateModel3Transform(rotation, model3AnimationConfig);
+            model3Ref.current.scale.setScalar(transform.scale);
+            model3Ref.current.position.copy(transform.position);
+            model3Ref.current.rotation.copy(transform.rotation);
           }
         };
         
@@ -667,7 +855,7 @@ const Scene: React.FC<STLViewerProps> = ({
       setError('Failed to initialize 3D viewer');
       setIsLoading(false);
     }
-  }, [stlUrl1, stlUrl2, stlUrl3, autoRotate, modelColor, model1Transform, model2Transform, model3Transform]);
+  }, [stlUrl1, stlUrl2, stlUrl3, autoRotate, modelColor, model1Transform, model2Transform, model3Transform, model1AnimationConfig, model2AnimationConfig, model3AnimationConfig]);
 
   useEffect(() => {
     if (model1Ref.current) {
@@ -726,6 +914,7 @@ const Scene: React.FC<STLViewerProps> = ({
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-90 z-30">
           <div className="text-center">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-white">Loading 3D Models...</p>
           </div>
         </div>
       )}
