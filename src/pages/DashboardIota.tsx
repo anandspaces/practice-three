@@ -1,17 +1,17 @@
-import Scene from '../components/StlImageAnimationTheta';
+import Scene from '../components/StlImageAnimationIota';
 
-export default function DashboardTheta() {
+export default function DashboardIota() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-900 flex items-center justify-center p-4 overflow-hidden relative">
       {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute w-96 h-96 bg-gray-500/10 rounded-full blur-3xl top-20 -left-20 animate-pulse"></div>
         <div className="absolute w-96 h-96 bg-gray-500/10 rounded-full blur-3xl bottom-20 -right-20 animate-pulse" style={{ animationDelay: '1s' }}></div>
-      </div>
+      </div> */}
 
       {/* Main content container */}
       <div className="relative z-10 w-full max-w-7xl mx-auto">
-        <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
+        <div className="backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden">
           
           {/* Content grid */}
           <div className="grid lg:grid-cols-2 gap-0">
@@ -19,7 +19,7 @@ export default function DashboardTheta() {
             {/* Left side - Text content */}
             <div className="p-6 sm:p-8 md:p-12 flex flex-col justify-center relative order-2 lg:order-1">
               {/* Decorative gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-gray-600/20 to-transparent pointer-events-none"></div>
+              <div className="absolute inset-0  pointer-events-none"></div>
               
               <div className="relative z-10">
                 {/* Main heading with sophisticated styling */}
@@ -65,46 +65,33 @@ export default function DashboardTheta() {
             </div>
 
             {/* Right side - 3D Viewer */}
-            <div className="relative flex items-center justify-center p-6 sm:p-8 md:p-12 bg-gradient-to-bl from-gray-950/30 to-transparent order-1 lg:order-2">
-              {/* Decorative elements */}
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-gray-500/5 rounded-full blur-3xl"></div>
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-gray-500/5 rounded-full blur-3xl"></div>
-              </div>
-
-              {/* 3D Viewer container with glass effect */}
-              <div className="relative w-full max-w-md">
-                <div className="relative bg-white/5 rounded-2xl border border-white/20 shadow-2xl overflow-hidden">
-                  {/* Corner accents */}
-                  <div className="absolute top-0 left-0 w-16 sm:w-20 h-16 sm:h-20 border-t-2 border-l-2 border-gray-400/30 rounded-tl-2xl pointer-events-none z-10"></div>
-                  <div className="absolute bottom-0 right-0 w-16 sm:w-20 h-16 sm:h-20 border-b-2 border-r-2 border-gray-400/30 rounded-br-2xl pointer-events-none z-10"></div>
-                  
-                  <Scene
-                    stlUrl1="/Theta/upper_new.stl"
-                    stlUrl2="/Theta/lower_new.stl"
-                    stlUrl3="/Theta/crown_new.stl"
-                    model1Transform={{
-                      position: { x: 0, y: 4, z: 0 },
-                      rotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 5/4 },
-                      scale: 0.7
-                    }}
-                    model2Transform={{
-                      position: { x: 0, y: -4, z: 0 },
-                      rotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 5/4 },
-                      scale: 0.7
-                    }}
-                    model3Transform={{
-                      position: { x: 9, y: -2, z: -15 },
-                      rotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 5/4 },
-                      scale: 0.7
-                    }}
-                    width="100%"
-                    height="500px"
-                    autoRotate={false}
-                    modelColor="#ffffff" // white 
-                    backgroundColor="transparent"
-                  />
-                </div>
+            <div className="relative flex items-center justify-center p-6 sm:p-8 md:p-12 order-1 lg:order-2">
+              <div className="relative w-full">
+                <Scene
+                  stlUrl1="/Theta/upper_new.stl"
+                  stlUrl2="/Theta/lower_new.stl"
+                  stlUrl3="/Theta/crown_new.stl"
+                  model1Transform={{
+                    position: { x: 0, y: 5, z: 0 },
+                    rotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
+                    scale: 0.7
+                  }}
+                  model2Transform={{
+                    position: { x: 0, y: -5, z: 0 },
+                    rotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
+                    scale: 0.7
+                  }}
+                  model3Transform={{
+                    position: { x: 9, y: -3, z: -15 },
+                    rotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
+                    scale: 0.7
+                  }}
+                  width="100%"
+                  height="500px"
+                  autoRotate={false}
+                  modelColor="#ffffff"
+                  backgroundColor="transparent"
+                />
               </div>
             </div>
           </div>
