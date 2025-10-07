@@ -3,11 +3,6 @@ import Scene from '../components/StlImageAnimationKappa';
 export default function DashboardKappa() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-900 flex items-center justify-center p-4 overflow-hidden relative">
-      {/* Animated background elements */}
-      {/* <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute w-96 h-96 bg-gray-500/10 rounded-full blur-3xl top-20 -left-20 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-gray-500/10 rounded-full blur-3xl bottom-20 -right-20 animate-pulse" style={{ animationDelay: '1s' }}></div>
-      </div> */}
 
       {/* Main content container */}
       <div className="relative z-10 w-full max-w-7xl mx-auto">
@@ -86,9 +81,33 @@ export default function DashboardKappa() {
                     rotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
                     scale: 0.7
                   }}
+                  model1AnimationConfig={{
+                    startScale: 0.7,
+                    peakScale: 0.7,
+                    startPosition: { x: 0, y: 5, z: 0 },
+                    peakPosition: { x: 0, y: 15, z: 0 },
+                    startRotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
+                    peakRotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
+                  }}
+                  model2AnimationConfig={{
+                    startScale: 0.7,
+                    peakScale: 0.7,
+                    startPosition: { x: 0, y: -5, z: 0 },
+                    peakPosition: { x: 0, y: -15, z: 0 },
+                    startRotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
+                    peakRotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
+                  }}
+                  model3AnimationConfig={{
+                    startScale: 0.7,
+                    peakScale: 2,
+                    startPosition: { x: 9, y: -3, z: -15 },
+                    peakPosition: { x: 0, y: 0, z: 0 },
+                    startRotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
+                    peakRotation: { x: Math.PI * 0.55, y: Math.PI * 1.35, z: Math.PI },
+                  }}
                   width="100%"
                   height="500px"
-                  autoRotate={false}
+                  autoRotate={true}
                   modelColor="#ffffff"
                   backgroundColor="transparent"
                 />
