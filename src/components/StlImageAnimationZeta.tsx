@@ -78,7 +78,7 @@ class STLLoader extends THREE.Loader {
   }
 }
 
-// Orbit Controls
+// Professional Orbit Controls
 class OrbitControls {
   private camera: THREE.PerspectiveCamera;
   private domElement: HTMLElement;
@@ -116,7 +116,7 @@ class OrbitControls {
     if (event.button === 0) {
       this.state = 'ROTATE';
       this.rotateStart.set(event.clientX, event.clientY);
-    } else if (event.button === 1) {
+    } else if (event.button === 2) {
       this.state = 'PAN';
       this.panStart.set(event.clientX, event.clientY);
     }
@@ -132,6 +132,7 @@ class OrbitControls {
       const rotateEnd = new THREE.Vector2(event.clientX, event.clientY);
       const rotateDelta = new THREE.Vector2().subVectors(rotateEnd, this.rotateStart).multiplyScalar(this.rotateSpeed);
       this.rotateLeft(2 * Math.PI * rotateDelta.x / this.domElement.clientHeight);
+      this.rotateUp(2 * Math.PI * rotateDelta.y / this.domElement.clientHeight);
       this.rotateStart.copy(rotateEnd);
       this.update();
     } else if (this.state === 'PAN' && this.enablePan) {
@@ -163,6 +164,7 @@ class OrbitControls {
 
   private onContextMenu(event: Event) { event.preventDefault(); }
   private rotateLeft(angle: number) { this.sphericalDelta.theta -= angle; }
+  private rotateUp(angle: number) { this.sphericalDelta.phi -= angle; }
   private dollyIn(dollyScale: number) { this.sphericalDelta.radius /= dollyScale; }
   private dollyOut(dollyScale: number) { this.sphericalDelta.radius *= dollyScale; }
 
@@ -196,7 +198,8 @@ class OrbitControls {
     offset.applyQuaternion(quat);
     this.spherical.setFromVector3(offset);
     this.spherical.theta += this.sphericalDelta.theta;
-    this.spherical.phi = Math.PI / 2;
+    this.spherical.phi += this.sphericalDelta.phi;
+    this.spherical.phi = Math.max(0.01, Math.min(Math.PI - 0.01, this.spherical.phi));
     this.spherical.radius = Math.max(this.minDistance, Math.min(this.maxDistance, this.spherical.radius));
     offset.setFromSpherical(this.spherical);
     offset.applyQuaternion(quatInverse);
@@ -222,6 +225,9 @@ interface ModelConfig {
   url: string;
   title: string;
   subtitle?: string;
+  position?: { x: number; y: number; z: number };
+  rotation?: { x: number; y: number; z: number };
+  scale?: number;
 }
 
 interface STLViewerProps {
@@ -250,10 +256,34 @@ const Scene: React.FC<STLViewerProps> = ({
   displayDuration = 10000
 }) => {
   const defaultModels: ModelConfig[] = [
-    { url: '/ROOTLIB/upper/grin-design-26.stl', title: 'PreMolar'},
-    { url: '/ROOTLIB/lower/Grin-158-(37).stl', title: 'Molar'},
-    { url: '/ROOTLIB/lower/Grin-58-(32).stl', title: 'Canine'},
-    { url: '/ROOTLIB/lower/Grin-158-(33).stl', title: 'Incisor'}
+    { 
+      url: '/ROOTLIB/upper/grin-design-26.stl', 
+      title: 'PreMolar',
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: 1
+    },
+    { 
+      url: '/ROOTLIB/lower/Grin-158-(37).stl', 
+      title: 'Molar',
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: 1
+    },
+    { 
+      url: '/ROOTLIB/lower/Grin-58-(32).stl', 
+      title: 'Canine',
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: 1
+    },
+    { 
+      url: '/ROOTLIB/lower/Grin-158-(33).stl', 
+      title: 'Incisor',
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: 1
+    }
   ];
 
   const modelConfigs = models || defaultModels;
@@ -295,6 +325,7 @@ const Scene: React.FC<STLViewerProps> = ({
 
   useEffect(() => {
     const container = mountRef.current!;
+    
     try {
       const scene = new THREE.Scene();
       sceneRef.current = scene;
@@ -329,17 +360,35 @@ const Scene: React.FC<STLViewerProps> = ({
           try {
             geometry.center();
             geometry.rotateX(Math.PI);
+            
+            if (currentModel.rotation) {
+              geometry.rotateX(currentModel.rotation.x);
+              geometry.rotateY(currentModel.rotation.y);
+              geometry.rotateZ(currentModel.rotation.z);
+            }
+            
             geometry.computeBoundingBox();
             geometry.computeBoundingSphere();
             const material = new THREE.MeshPhysicalMaterial({
               color: modelColor,
-              metalness: 0.5,
-              roughness: 0.2,
+              metalness: 0.3,
+              roughness: 0.3,
               clearcoat: 1,
               clearcoatRoughness: 0,
             });
             const model = new THREE.Mesh(geometry, material);
-            model.scale.setScalar(modelScale);
+            
+            const finalScale = currentModel.scale !== undefined ? currentModel.scale : modelScale;
+            model.scale.setScalar(finalScale);
+            
+            if (currentModel.position) {
+              model.position.set(
+                currentModel.position.x,
+                currentModel.position.y,
+                currentModel.position.z
+              );
+            }
+            
             model.castShadow = true;
             model.receiveShadow = true;
             modelRef.current = model;
@@ -347,7 +396,7 @@ const Scene: React.FC<STLViewerProps> = ({
             
             const boundingSphere = geometry.boundingSphere!;
             const center = boundingSphere.center;
-            const radius = boundingSphere.radius * modelScale;
+            const radius = boundingSphere.radius * finalScale;
             const containerAspect = container.clientWidth / container.clientHeight;
             const distance = radius * (containerAspect < 1 ? 3.5 : 2.5);
             camera.position.set(center.x + distance * 0.7, center.y + distance * 0.7, center.z + distance * 0.9);
@@ -356,9 +405,10 @@ const Scene: React.FC<STLViewerProps> = ({
             controls.setTarget(center.x, center.y, center.z);
             controls.enableRotate = true;
             controls.enableZoom = true;
-            controls.enablePan = false;
+            controls.enablePan = true;
             controls.rotateSpeed = 0.5;
             controls.zoomSpeed = 1.2;
+            controls.panSpeed = 1.0;
             controls.minDistance = radius * 1.2;
             controls.maxDistance = radius * 10;
             controlsRef.current = controls;
@@ -423,11 +473,9 @@ const Scene: React.FC<STLViewerProps> = ({
               <h3 className="text-lg font-bold text-white drop-shadow-lg">{currentModel.title}</h3>
               {currentModel.subtitle && <p className="text-sm text-gray-200/80 drop-shadow">{currentModel.subtitle}</p>}
             </div>
-            {/* <span className="text-xs text-white/60 font-medium">{currentModelIndex + 1} / {modelConfigs.length}</span> */}
           </div>
         </div>
       </div>
-
 
       {modelConfigs.length > 1 && (
         <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center gap-2">
@@ -441,7 +489,7 @@ const Scene: React.FC<STLViewerProps> = ({
                   setIsTransitioning(false);
                 }, 500);
               }}
-              className={`h-2 rounded-full transition-all duration-300 ${index === currentModelIndex ? 'w-8 bg-white' : 'w-2 bg-white/40 hover:bg-white/60'}`}
+              className={`h-2 rounded-full transition-all duration-300 ${index === currentModelIndex ? 'w-8 bg-white' : 'w-2 bg-white/40'}`}
             />
           ))}
         </div>
@@ -451,7 +499,7 @@ const Scene: React.FC<STLViewerProps> = ({
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-95 z-30">
           <div className="text-center">
             <div className="w-12 h-12 mx-auto mb-4 border-3 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
-            <h3 className="text-base font-semibold text-gray-900">Loading Model...</h3>
+            <h3 className="text-base font-semibold text-white">Loading Model...</h3>
           </div>
         </div>
       )}
