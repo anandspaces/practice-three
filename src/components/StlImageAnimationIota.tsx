@@ -122,9 +122,9 @@ class STLLoader extends THREE.Loader {
   }
 }
 
-// Orbit Controls implementation
+// Orbit Controls implementation for Orthographic Camera
 class OrbitControls {
-  private camera: THREE.PerspectiveCamera;
+  private camera: THREE.OrthographicCamera;
   private domElement: HTMLElement;
   private target = new THREE.Vector3();
   private spherical = new THREE.Spherical();
@@ -138,15 +138,15 @@ class OrbitControls {
   public rotateSpeed = 1.0;
   public zoomSpeed = 1.0;
   public panSpeed = 1.0;
-  public minDistance = 0;
-  public maxDistance = Infinity;
+  public minZoom = 0;
+  public maxZoom = Infinity;
   
   private state = 'NONE';
   private isUserInteracting = false;
   private totalRotation = 0;
   public onRotationChange?: (rotation: number) => void;
 
-  constructor(camera: THREE.PerspectiveCamera, domElement: HTMLElement) {
+  constructor(camera: THREE.OrthographicCamera, domElement: HTMLElement) {
     this.camera = camera;
     this.domElement = domElement;
     
@@ -156,7 +156,7 @@ class OrbitControls {
 
   private addEventListeners() {
     this.domElement.addEventListener('mousedown', this.onMouseDown.bind(this));
-    this.domElement.addEventListener('wheel', this.onMouseWheel.bind(this));
+    // this.domElement.addEventListener('wheel', this.onMouseWheel.bind(this));
     this.domElement.addEventListener('contextmenu', this.onContextMenu.bind(this));
   }
 
@@ -221,24 +221,24 @@ class OrbitControls {
     }, 1000);
   }
 
-  private onMouseWheel(event: WheelEvent) {
-    if (this.enableZoom === false) return;
+  // private onMouseWheel(event: WheelEvent) {
+  //   if (this.enableZoom === false) return;
     
-    event.preventDefault();
-    this.isUserInteracting = true;
+  //   event.preventDefault();
+  //   this.isUserInteracting = true;
     
-    if (event.deltaY < 0) {
-      this.dollyIn(this.getZoomScale());
-    } else if (event.deltaY > 0) {
-      this.dollyOut(this.getZoomScale());
-    }
+  //   if (event.deltaY < 0) {
+  //     this.dollyIn(this.getZoomScale());
+  //   } else if (event.deltaY > 0) {
+  //     this.dollyOut(this.getZoomScale());
+  //   }
     
-    this.update();
+  //   this.update();
     
-    setTimeout(() => {
-      this.isUserInteracting = false;
-    }, 1000);
-  }
+  //   setTimeout(() => {
+  //     this.isUserInteracting = false;
+  //   }, 1000);
+  // }
 
   private onContextMenu(event: Event) {
     event.preventDefault();
@@ -248,28 +248,32 @@ class OrbitControls {
     this.sphericalDelta.theta -= angle;
   }
 
-  private dollyIn(dollyScale: number) {
-    this.sphericalDelta.radius /= dollyScale;
-  }
+  // private dollyIn(dollyScale: number) {
+  //   this.camera.zoom *= dollyScale;
+  //   this.camera.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.camera.zoom));
+  //   this.camera.updateProjectionMatrix();
+  // }
 
-  private dollyOut(dollyScale: number) {
-    this.sphericalDelta.radius *= dollyScale;
-  }
+  // private dollyOut(dollyScale: number) {
+  //   this.camera.zoom /= dollyScale;
+  //   this.camera.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.camera.zoom));
+  //   this.camera.updateProjectionMatrix();
+  // }
 
   private pan(deltaX: number, deltaY: number) {
     const offset = new THREE.Vector3();
     offset.copy(this.camera.position).sub(this.target);
     
-    let targetDistance = offset.length();
-    targetDistance *= Math.tan((this.camera.fov / 2) * Math.PI / 180.0);
+    // For orthographic camera, use the visible area based on zoom
+    const scale = (this.camera.top - this.camera.bottom) / this.camera.zoom / this.domElement.clientHeight;
     
     const panLeft = new THREE.Vector3();
     panLeft.setFromMatrixColumn(this.camera.matrix, 0);
-    panLeft.multiplyScalar(-2 * deltaX * targetDistance / this.domElement.clientHeight);
+    panLeft.multiplyScalar(-2 * deltaX * scale);
     
     const panUp = new THREE.Vector3();
     panUp.setFromMatrixColumn(this.camera.matrix, 1);
-    panUp.multiplyScalar(2 * deltaY * targetDistance / this.domElement.clientHeight);
+    panUp.multiplyScalar(2 * deltaY * scale);
     
     const pan = new THREE.Vector3();
     pan.copy(panLeft).add(panUp);
@@ -278,9 +282,9 @@ class OrbitControls {
     this.target.add(pan);
   }
 
-  private getZoomScale() {
-    return Math.pow(0.95, this.zoomSpeed);
-  }
+  // private getZoomScale() {
+  //   return Math.pow(0.95, this.zoomSpeed);
+  // }
 
   public applyAutoRotate() {
     if (!this.isUserInteracting) {
@@ -305,7 +309,8 @@ class OrbitControls {
     this.spherical.theta += this.sphericalDelta.theta;
     this.spherical.phi = Math.PI / 2;
     
-    this.spherical.radius = Math.max(this.minDistance, Math.min(this.maxDistance, this.spherical.radius));
+    // Clamp radius for orthographic camera (still needed for positioning)
+    this.spherical.radius = Math.max(this.camera.near + 1, Math.min(this.camera.far - 1, this.spherical.radius));
     
     offset.setFromSpherical(this.spherical);
     offset.applyQuaternion(quatInverse);
@@ -325,7 +330,7 @@ class OrbitControls {
 
   public dispose() {
     this.domElement.removeEventListener('mousedown', this.onMouseDown.bind(this));
-    this.domElement.removeEventListener('wheel', this.onMouseWheel.bind(this));
+    // this.domElement.removeEventListener('wheel', this.onMouseWheel.bind(this));
     this.domElement.removeEventListener('contextmenu', this.onContextMenu.bind(this));
   }
 }
@@ -336,9 +341,9 @@ const calculateOpacity = (rotation: number): number => {
   const degrees = (normalizedRotation * 180) / Math.PI;
   
   if (degrees <= 180) {
-    return 1 - (degrees / 180); // Decreases from 1.0 to 0
+    return 1 - (degrees / 180);
   } else {
-    return (degrees - 180) / 180; // Increases from 0 to 1.0
+    return (degrees - 180) / 180;
   }
 };
 
@@ -395,7 +400,7 @@ const Scene: React.FC<STLViewerProps> = ({
   const mountRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
   const model1Ref = useRef<THREE.Mesh | null>(null);
   const model2Ref = useRef<THREE.Mesh | null>(null);
   const model3Ref = useRef<THREE.Mesh | null>(null);
@@ -412,9 +417,13 @@ const Scene: React.FC<STLViewerProps> = ({
       const scene = new THREE.Scene();
       sceneRef.current = scene;
       
-      const camera = new THREE.PerspectiveCamera(
-        45,
-        container.clientWidth / container.clientHeight,
+      const aspect = container.clientWidth / container.clientHeight;
+      const frustumSize = 100;
+      const camera = new THREE.OrthographicCamera(
+        frustumSize * aspect / -2,
+        frustumSize * aspect / 2,
+        frustumSize / 2,
+        frustumSize / -2,
         0.1,
         2000
       );
@@ -457,8 +466,8 @@ const Scene: React.FC<STLViewerProps> = ({
 
               const material = new THREE.MeshStandardMaterial({
                 color: modelColor,
-                metalness: 0,
-                roughness: 1,
+                metalness: 0.3,
+                roughness: 0.3,
               });
               
               const model = new THREE.Mesh(geometry, material);
@@ -551,14 +560,17 @@ const Scene: React.FC<STLViewerProps> = ({
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
         
-        const containerAspect = container.clientWidth / container.clientHeight;
-        const distance = maxDim * (containerAspect < 1 ? 2.5 : 2);
-        
+        // Position camera for orthographic view
+        const distance = maxDim * 3;
         camera.position.set(
-          center.x + distance * 0.7,
-          center.y + distance * 0.7,
-          center.z + distance * 0.9
+          center.x + distance * 0.5,
+          center.y + distance * 0.5,
+          center.z + distance * 0.5
         );
+        
+        // Adjust camera zoom to fit the model
+        camera.zoom = (frustumSize / maxDim) * 0.8;
+        camera.updateProjectionMatrix();
         
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.setTarget(center.x, center.y, center.z);
@@ -567,13 +579,12 @@ const Scene: React.FC<STLViewerProps> = ({
         controls.enablePan = false;
         controls.rotateSpeed = 0.5;
         controls.zoomSpeed = 1.2;
-        controls.minDistance = maxDim * 0.8;
-        controls.maxDistance = maxDim * 10;
+        controls.minZoom = 0.1;
+        controls.maxZoom = 10;
         
         controls.onRotationChange = (rotation: number) => {
           const opacity = calculateOpacity(rotation);
           
-          // Update both models with material.needsUpdate flag
           if (model1Ref.current && model1Ref.current.material instanceof THREE.MeshStandardMaterial) {
             model1Ref.current.material.opacity = opacity;
             model1Ref.current.material.needsUpdate = true;
@@ -614,8 +625,12 @@ const Scene: React.FC<STLViewerProps> = ({
         if (camera && renderer && container) {
           const width = container.clientWidth;
           const height = container.clientHeight;
+          const aspect = width / height;
           
-          camera.aspect = width / height;
+          camera.left = frustumSize * aspect / -2;
+          camera.right = frustumSize * aspect / 2;
+          camera.top = frustumSize / 2;
+          camera.bottom = frustumSize / -2;
           camera.updateProjectionMatrix();
           renderer.setSize(width, height);
         }
@@ -700,7 +715,6 @@ const Scene: React.FC<STLViewerProps> = ({
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-90 z-30">
           <div className="text-center">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-white">Loading 3D models...</p>
           </div>
         </div>
       )}
