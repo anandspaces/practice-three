@@ -80,7 +80,7 @@ export default function DashboardTheta() {
                   <div className="absolute bottom-0 right-0 w-16 sm:w-20 h-16 sm:h-20 border-b-2 border-r-2 border-gray-400/30 rounded-br-2xl pointer-events-none z-10"></div>
                   
                   <Scene
-                    stlUrl1="/Theta/upper_new3.stl"
+                    stlUrl1="/Theta/upper_new.stl"
                     stlUrl2="/Theta/lower_new.stl"
                     stlUrl3="/Theta/crown_new.stl"
                     model1Transform={{
@@ -89,19 +89,19 @@ export default function DashboardTheta() {
                       scale: 0.7
                     }}
                     model2Transform={{
-                      position: { x: 0, y: -4, z: 0 },
+                      position: { x: 1, y: -4, z: 3 },
                       rotation: { x: Math.PI/2, y: Math.PI, z: Math.PI * 5/4 },
                       scale: 0.7
                     }}
                     model3Transform={{
-                      position: { x: 10, y: -5, z: -15 },
+                      position: { x: 10, y: -5, z: -12 },
                       rotation: { x: Math.PI/2, y: Math.PI, z: Math.PI * 5/4 },
                       scale: 0.7
                     }}
                     width="100%"
                     height="500px"
                     autoRotate={false}
-                    modelColor="#ffffff"
+                    modelColor="#cccccc" // pale white 
                     backgroundColor="transparent"
                   />
                 </div>
