@@ -10,6 +10,7 @@ import DashboardEta from './pages/DashboardEta';
 import DashboardTheta from './pages/DashboardTheta';
 import DashboardIota from './pages/DashboardIota';
 import DashboardKappa from './pages/DashboardKappa';
+import DashboardLambda from './pages/DashboardLambda';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         <Route path="/theta" element={<DashboardTheta />} />
         <Route path="/iota" element={<DashboardIota />} />
         <Route path="/kappa" element={<DashboardKappa />} />
+        <Route path="/lambda" element={<DashboardLambda />} />
       </Routes>
     </Router>
   )
