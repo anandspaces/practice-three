@@ -48,11 +48,11 @@ export default function DashboardEta() {
           
           <Scene
             width="120px"
-            height="180px"
+            height="200px"
             autoRotate={true}
-            modelColor="#d4d4d4"
+            modelColor="#ffffff"
             backgroundColor="transparent"
-            modelScale={0.5}
+            modelScale={0.7}
             showControls={false}
             className="relative z-10"
           />
