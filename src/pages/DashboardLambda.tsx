@@ -66,44 +66,29 @@ export default function DashboardLambda() {
                   stlUrl1="/Theta/upper_new.stl"
                   stlUrl2="/Theta/lower_new.stl"
                   stlUrl3="/Theta/crown_new.stl"
-                  model1Transform={{
-                    position: { x: 0, y: 5, z: 0 },
-                    rotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
-                    scale: 0.7
-                  }}
-                  model2Transform={{
-                    position: { x: 0, y: -5, z: 0 },
-                    rotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
-                    scale: 0.7
-                  }}
-                  model3Transform={{
-                    position: { x: 9, y: -3, z: -15 },
-                    rotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
-                    scale: 0.7
-                  }}
                   model1AnimationConfig={{
                     startScale: 0.7,
                     peakScale: 0.7,
-                    startPosition: { x: 0, y: 5, z: 0 },
-                    peakPosition: { x: 0, y: 15, z: 0 },
-                    startRotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
-                    peakRotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
+                    startPosition: { x: 0, y: 0, z: 0 },
+                    peakPosition: { x: 0, y: 0, z: 0 },
+                    startRotation: { x: Math.PI, y: Math.PI, z: Math.PI },
+                    peakRotation: { x: Math.PI, y: Math.PI, z: Math.PI },
                   }}
                   model2AnimationConfig={{
                     startScale: 0.7,
                     peakScale: 0.7,
-                    startPosition: { x: 0, y: -5, z: 0 },
-                    peakPosition: { x: 0, y: -15, z: 0 },
-                    startRotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
-                    peakRotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
+                    startPosition: { x: 0, y: 0, z: 0 },
+                    peakPosition: { x: 0, y: 0, z: 0 },
+                    startRotation: { x: 0, y: 0, z: 0 },
+                    peakRotation: { x: 0, y: 0, z: 0 },
                   }}
                   model3AnimationConfig={{
                     startScale: 0.7,
                     peakScale: 1.5,
-                    startPosition: { x: 9, y: -3, z: -15 },
-                    peakPosition: { x: 0, y: 10, z: 0 },
-                    startRotation: { x: Math.PI * 0.55, y: Math.PI, z: Math.PI * 1.25 },
-                    peakRotation: { x: Math.PI * 0.55, y: Math.PI * 1.35, z: Math.PI * 1.25 },
+                    startPosition: { x: 0, y: 0, z: 0 },
+                    peakPosition: { x: 0, y: 0, z: 0 },
+                    startRotation: { x: 0, y: 0, z: 0 },
+                    peakRotation: { x: 0, y: 0, z: 0 },
                   }}
                   width="100%"
                   height="500px"
