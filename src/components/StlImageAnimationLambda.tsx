@@ -1,181 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-class OrbitControls {
-  private camera: THREE.OrthographicCamera;
-  private domElement: HTMLElement;
-  private target = new THREE.Vector3();
-  private spherical = new THREE.Spherical();
-  private sphericalDelta = new THREE.Spherical();
-  private rotateStart = new THREE.Vector2();
-  private panStart = new THREE.Vector2();
-  
-  public enableRotate = true;
-  public enableZoom = false;
-  public enablePan = true;
-  public rotateSpeed = 1.0;
-  public zoomSpeed = 1.0;
-  public panSpeed = 1.0;
-  public minZoom = 0;
-  public maxZoom = Infinity;
-  
-  private state = 'NONE';
-  private isUserInteracting = false;
-  private totalRotation = 0;
-  public onRotationChange?: (rotation: number) => void;
-
-  constructor(camera: THREE.OrthographicCamera, domElement: HTMLElement) {
-    this.camera = camera;
-    this.domElement = domElement;
-    
-    this.update();
-    this.addEventListeners();
-  }
-
-  private addEventListeners() {
-    this.domElement.addEventListener('mousedown', this.onMouseDown.bind(this));
-    this.domElement.addEventListener('contextmenu', this.onContextMenu.bind(this));
-  }
-
-  private onMouseDown(event: MouseEvent) {
-    this.isUserInteracting = true;
-    
-    if (event.button === 0) {
-      this.state = 'ROTATE';
-      this.rotateStart.set(event.clientX, event.clientY);
-    } else if (event.button === 1) {
-      this.state = 'PAN';
-      this.panStart.set(event.clientX, event.clientY);
-    }
-    
-    if (this.state !== 'NONE') {
-      document.addEventListener('mousemove', this.onMouseMove.bind(this));
-      document.addEventListener('mouseup', this.onMouseUp.bind(this));
-      this.domElement.style.cursor = 'grabbing';
-    }
-  }
-
-  private onMouseMove(event: MouseEvent) {
-    if (this.state === 'ROTATE') {
-      if (this.enableRotate === false) return;
-      
-      const rotateEnd = new THREE.Vector2(event.clientX, event.clientY);
-      const rotateDelta = new THREE.Vector2().subVectors(rotateEnd, this.rotateStart).multiplyScalar(this.rotateSpeed);
-      
-      const element = this.domElement;
-      const rotationAngle = 2 * Math.PI * rotateDelta.x / element.clientHeight;
-      this.rotateLeft(rotationAngle);
-      
-      this.totalRotation += rotationAngle;
-      
-      if (this.onRotationChange) {
-        this.onRotationChange(this.totalRotation);
-      }
-      
-      this.rotateStart.copy(rotateEnd);
-      this.update();
-      
-    } else if (this.state === 'PAN') {
-      if (this.enablePan === false) return;
-      
-      const panEnd = new THREE.Vector2(event.clientX, event.clientY);
-      const panDelta = new THREE.Vector2().subVectors(panEnd, this.panStart).multiplyScalar(this.panSpeed);
-      
-      this.pan(panDelta.x, panDelta.y);
-      this.panStart.copy(panEnd);
-      this.update();
-    }
-  }
-
-  private onMouseUp() {
-    document.removeEventListener('mousemove', this.onMouseMove.bind(this));
-    document.removeEventListener('mouseup', this.onMouseUp.bind(this));
-    this.domElement.style.cursor = 'grab';
-    this.state = 'NONE';
-    
-    setTimeout(() => {
-      this.isUserInteracting = false;
-    }, 1000);
-  }
-
-  private onContextMenu(event: Event) {
-    event.preventDefault();
-  }
-
-  private rotateLeft(angle: number) {
-    this.sphericalDelta.theta -= angle;
-  }
-
-  private pan(deltaX: number, deltaY: number) {
-    const offset = new THREE.Vector3();
-    offset.copy(this.camera.position).sub(this.target);
-    
-    const scale = (this.camera.top - this.camera.bottom) / this.camera.zoom / this.domElement.clientHeight;
-    
-    const panLeft = new THREE.Vector3();
-    panLeft.setFromMatrixColumn(this.camera.matrix, 0);
-    panLeft.multiplyScalar(-2 * deltaX * scale);
-    
-    const panUp = new THREE.Vector3();
-    panUp.setFromMatrixColumn(this.camera.matrix, 1);
-    panUp.multiplyScalar(2 * deltaY * scale);
-    
-    const pan = new THREE.Vector3();
-    pan.copy(panLeft).add(panUp);
-    
-    this.camera.position.add(pan);
-    this.target.add(pan);
-  }
-
-  public applyAutoRotate() {
-    if (!this.isUserInteracting) {
-      this.sphericalDelta.theta = -0.01;
-      this.totalRotation -= 0.01;
-      
-      if (this.onRotationChange) {
-        this.onRotationChange(this.totalRotation);
-      }
-    }
-  }
-
-  public update(): boolean {
-    const offset = new THREE.Vector3();
-    const quat = new THREE.Quaternion().setFromUnitVectors(this.camera.up, new THREE.Vector3(0, 1, 0));
-    const quatInverse = quat.clone().invert();
-    
-    offset.copy(this.camera.position).sub(this.target);
-    offset.applyQuaternion(quat);
-    
-    this.spherical.setFromVector3(offset);
-    this.spherical.theta += this.sphericalDelta.theta;
-    this.spherical.phi = Math.PI / 2;
-    
-    this.spherical.radius = Math.max(this.camera.near + 1, Math.min(this.camera.far - 1, this.spherical.radius));
-    
-    offset.setFromSpherical(this.spherical);
-    offset.applyQuaternion(quatInverse);
-    
-    this.camera.position.copy(this.target).add(offset);
-    this.camera.lookAt(this.target);
-    
-    this.sphericalDelta.set(0, 0, 0);
-    
-    return true;
-  }
-
-  public setTarget(x: number, y: number, z: number) {
-    this.target.set(x, y, z);
-    this.update();
-  }
-
-  public dispose() {
-    this.domElement.removeEventListener('mousedown', this.onMouseDown.bind(this));
-    this.domElement.removeEventListener('contextmenu', this.onContextMenu.bind(this));
-  }
-}
-
-// Calculate opacity based on rotation angle
 const calculateOpacity = (rotation: number): number => {
   const normalizedRotation = ((rotation % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
   const degrees = (normalizedRotation * 180) / Math.PI;
@@ -195,7 +22,6 @@ const calculateOpacity = (rotation: number): number => {
   return 1;
 };
 
-// Animation configuration for model transformation
 interface ModelAnimationConfig {
   startScale: number;
   peakScale: number;
@@ -205,7 +31,6 @@ interface ModelAnimationConfig {
   peakRotation: { x: number; y: number; z: number };
 }
 
-// Model 1 transformation (upper jaw) - animates 0° to 135° and 225° to 360°
 const calculateModel1Transform = (
   rotation: number,
   config: ModelAnimationConfig
@@ -215,7 +40,6 @@ const calculateModel1Transform = (
 
   let progress = 0;
 
-  // Forward animation: 0° to 135°
   if (degrees >= 0 && degrees <= 135) {
     progress = degrees / 135;
     
@@ -249,7 +73,6 @@ const calculateModel1Transform = (
     return { scale, position, rotation: eulerRotation };
   }
 
-  // Reverse animation: 225° to 360°
   if (degrees >= 225 && degrees <= 360) {
     progress = (degrees - 225) / 135;
     
@@ -258,7 +81,6 @@ const calculateModel1Transform = (
         ? 2 * progress * progress
         : 1 - Math.pow(-2 * progress + 2, 2) / 2;
 
-    // Interpolate from peak back to start
     const scale =
       config.peakScale -
       (config.peakScale - config.startScale) * easedProgress;
@@ -284,7 +106,6 @@ const calculateModel1Transform = (
     return { scale, position, rotation: eulerRotation };
   }
 
-  // Between 135° and 225°: stay at peak
   if (degrees > 135 && degrees < 225) {
     return {
       scale: config.peakScale,
@@ -301,7 +122,6 @@ const calculateModel1Transform = (
     };
   }
 
-  // Default: start position
   return {
     scale: config.startScale,
     position: new THREE.Vector3(
@@ -317,7 +137,6 @@ const calculateModel1Transform = (
   };
 };
 
-// Model 2 transformation (lower jaw) - same as model 1
 const calculateModel2Transform = (
   rotation: number,
   config: ModelAnimationConfig
@@ -325,7 +144,6 @@ const calculateModel2Transform = (
   return calculateModel1Transform(rotation, config);
 };
 
-// Model 3 transformation (middle element) - animates 135° to 225°
 const calculateModel3Transform = (
   rotation: number,
   config: ModelAnimationConfig
@@ -387,13 +205,6 @@ const calculateModel3Transform = (
   };
 };
 
-interface ModelTransform {
-  position?: { x: number; y: number; z: number };
-  rotation?: { x: number; y: number; z: number };
-  scale?: number;
-  visible?: boolean;
-}
-
 interface STLViewerProps {
   stlUrl1?: string;
   stlUrl2?: string;
@@ -403,9 +214,6 @@ interface STLViewerProps {
   autoRotate?: boolean;
   modelColor?: string;
   backgroundColor?: string;
-  model1Transform?: ModelTransform;
-  model2Transform?: ModelTransform;
-  model3Transform?: ModelTransform;
   showControls?: boolean;
   model1AnimationConfig?: ModelAnimationConfig;
   model2AnimationConfig?: ModelAnimationConfig;
@@ -421,58 +229,25 @@ const Scene: React.FC<STLViewerProps> = ({
   autoRotate = true,
   modelColor = '#c0c0c0',
   backgroundColor = '#1a1a1a',
-  model1Transform = {
-    position: { x: 0, y: 5, z: 0 },
-    rotation: { x: 0, y: 0, z: 0 },
-    scale: 0.7,
-    visible: true,
-  },
-  model2Transform = {
-    position: { x: 0, y: -5, z: 0 },
-    rotation: { x: 0, y: 0, z: 0 },
-    scale: 0.7,
-    visible: true,
-  },
-  model3Transform = {
-    position: { x: 0, y: 0, z: 0 },
-    rotation: { x: 0, y: 0, z: 0 },
-    scale: 0.7,
-    visible: true,
-  },
-  model1AnimationConfig = {
-    startScale: 0.7,
-    peakScale: 1.0,
-    startPosition: { x: 0, y: 5, z: 0 },
-    peakPosition: { x: 0, y: 15, z: 0 },
-    startRotation: { x: 0, y: 0, z: 0 },
-    peakRotation: { x: 0.3, y: 0, z: 0 },
-  },
-  model2AnimationConfig = {
-    startScale: 0.7,
-    peakScale: 1.0,
-    startPosition: { x: 0, y: -5, z: 0 },
-    peakPosition: { x: 0, y: -15, z: 0 },
-    startRotation: { x: 0, y: 0, z: 0 },
-    peakRotation: { x: -0.3, y: 0, z: 0 },
-  },
-  model3AnimationConfig = {
-    startScale: 0.7,
-    peakScale: 1.5,
-    startPosition: { x: 0, y: 0, z: 0 },
-    peakPosition: { x: 0, y: 0, z: 10 },
-    startRotation: { x: 0, y: 0, z: 0 },
-    peakRotation: { x: 0, y: 0, z: 0 },
-  },
+  model1AnimationConfig,
+  model2AnimationConfig,
+  model3AnimationConfig,
 }) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const model1Ref = useRef<THREE.Mesh | null>(null);
   const model2Ref = useRef<THREE.Mesh | null>(null);
   const model3Ref = useRef<THREE.Mesh | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const animationRef = useRef<number | null>(null);
+  const totalRotationRef = useRef<number>(0);
+  const isUserInteractingRef = useRef<boolean>(false);
+  
+  const initialModel1Config = useRef<ModelAnimationConfig | null>(null);
+  const initialModel2Config = useRef<ModelAnimationConfig | null>(null);
+  const initialModel3Config = useRef<ModelAnimationConfig | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -484,13 +259,9 @@ const Scene: React.FC<STLViewerProps> = ({
       const scene = new THREE.Scene();
       sceneRef.current = scene;
       
-      const aspect = container.clientWidth / container.clientHeight;
-      const frustumSize = 100;
-      const camera = new THREE.OrthographicCamera(
-        frustumSize * aspect / -2,
-        frustumSize * aspect / 2,
-        frustumSize / 2,
-        frustumSize / -2,
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        container.clientWidth / container.clientHeight,
         0.1,
         2000
       );
@@ -521,13 +292,12 @@ const Scene: React.FC<STLViewerProps> = ({
       directionalLight2.position.set(-10, -10, -5);
       scene.add(directionalLight2);
 
-      const loadModel = (url: string, modelRef: React.RefObject<THREE.Mesh | null>): Promise<void> => {
+      const loadModel = (url: string, modelRef: React.RefObject<THREE.Mesh | null>): Promise<THREE.Vector3> => {
         return new Promise((resolve, reject) => {
           const loader = new STLLoader();
           loader.load(
             url,
             (geometry) => {
-              geometry.center();
               geometry.computeBoundingBox();
               geometry.computeBoundingSphere();
 
@@ -541,7 +311,8 @@ const Scene: React.FC<STLViewerProps> = ({
               modelRef.current = model;
               scene.add(model);
               
-              resolve();
+              const position = model.position.clone();
+              resolve(position);
             },
             undefined,
             (error) => reject(error)
@@ -556,20 +327,20 @@ const Scene: React.FC<STLViewerProps> = ({
         loadModel(stlUrl1, model1Ref),
         loadModel(stlUrl2, model2Ref),
         loadModel(stlUrl3, model3Ref)
-      ]).then(() => {
+      ]).then(([]) => {
         if (model1Ref.current) {
-          model1Ref.current.position.set(
-            model1Transform?.position?.x ?? 0, 
-            model1Transform?.position?.y ?? 0, 
-            model1Transform?.position?.z ?? 0
-          );
-          model1Ref.current.rotation.set(
-            model1Transform?.rotation?.x ?? 0, 
-            model1Transform?.rotation?.y ?? 0, 
-            model1Transform?.rotation?.z ?? 0
-          );
-          model1Ref.current.scale.setScalar(model1Transform?.scale ?? 1);
-          model1Ref.current.visible = model1Transform?.visible ?? true;
+          const initialPos = model1Ref.current.position.clone();
+          const initialRot = model1Ref.current.rotation.clone();
+          const initialScale = model1Ref.current.scale.x;
+          
+          initialModel1Config.current = model1AnimationConfig || {
+            startScale: initialScale,
+            peakScale: initialScale,
+            startPosition: { x: initialPos.x, y: initialPos.y, z: initialPos.z },
+            peakPosition: { x: initialPos.x, y: initialPos.y, z: initialPos.z },
+            startRotation: { x: initialRot.x, y: initialRot.y, z: initialRot.z },
+            peakRotation: { x: initialRot.x, y: initialRot.y, z: initialRot.z },
+          };
           
           if (model1Ref.current.material instanceof THREE.MeshStandardMaterial) {
             model1Ref.current.material.transparent = true;
@@ -578,18 +349,18 @@ const Scene: React.FC<STLViewerProps> = ({
         }
         
         if (model2Ref.current) {
-          model2Ref.current.position.set(
-            model2Transform?.position?.x ?? 0,
-            model2Transform?.position?.y ?? 0,
-            model2Transform?.position?.z ?? 0
-          );
-          model2Ref.current.rotation.set(
-            model2Transform?.rotation?.x ?? 0,
-            model2Transform?.rotation?.y ?? 0,
-            model2Transform?.rotation?.z ?? 0
-          );
-          model2Ref.current.scale.setScalar(model2Transform?.scale ?? 1);
-          model2Ref.current.visible = model2Transform?.visible ?? true;
+          const initialPos = model2Ref.current.position.clone();
+          const initialRot = model2Ref.current.rotation.clone();
+          const initialScale = model2Ref.current.scale.x;
+          
+          initialModel2Config.current = model2AnimationConfig || {
+            startScale: initialScale,
+            peakScale: initialScale,
+            startPosition: { x: initialPos.x, y: initialPos.y, z: initialPos.z },
+            peakPosition: { x: initialPos.x, y: initialPos.y, z: initialPos.z },
+            startRotation: { x: initialRot.x, y: initialRot.y, z: initialRot.z },
+            peakRotation: { x: initialRot.x, y: initialRot.y, z: initialRot.z },
+          };
           
           if (model2Ref.current.material instanceof THREE.MeshStandardMaterial) {
             model2Ref.current.material.transparent = true;
@@ -598,28 +369,28 @@ const Scene: React.FC<STLViewerProps> = ({
         }
         
         if (model3Ref.current) {
-          model3Ref.current.position.set(
-            model3Transform?.position?.x ?? 0,
-            model3Transform?.position?.y ?? 0,
-            model3Transform?.position?.z ?? 0
-          );
-          model3Ref.current.rotation.set(
-            model3Transform?.rotation?.x ?? 0,
-            model3Transform?.rotation?.y ?? 0,
-            model3Transform?.rotation?.z ?? 0
-          );
-          model3Ref.current.scale.setScalar(model3Transform?.scale ?? 1);
-          model3Ref.current.visible = model3Transform?.visible ?? true;
+          const initialPos = model3Ref.current.position.clone();
+          const initialRot = model3Ref.current.rotation.clone();
+          const initialScale = model3Ref.current.scale.x;
+          
+          initialModel3Config.current = model3AnimationConfig || {
+            startScale: initialScale,
+            peakScale: initialScale,
+            startPosition: { x: initialPos.x, y: initialPos.y, z: initialPos.z },
+            peakPosition: { x: initialPos.x, y: initialPos.y, z: initialPos.z },
+            startRotation: { x: initialRot.x, y: initialRot.y, z: initialRot.z },
+            peakRotation: { x: initialRot.x, y: initialRot.y, z: initialRot.z },
+          };
         }
         
         const box = new THREE.Box3();
-        if (model1Ref.current && model1Ref.current.visible) {
+        if (model1Ref.current) {
           box.expandByObject(model1Ref.current);
         }
-        if (model2Ref.current && model2Ref.current.visible) {
+        if (model2Ref.current) {
           box.expandByObject(model2Ref.current);
         }
-        if (model3Ref.current && model3Ref.current.visible) {
+        if (model3Ref.current) {
           box.expandByObject(model3Ref.current);
         }
         
@@ -627,53 +398,33 @@ const Scene: React.FC<STLViewerProps> = ({
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
         
-        const distance = maxDim * 3;
+        const distance = maxDim * 2;
         camera.position.set(
           center.x + distance * 0.5,
           center.y + distance * 0.5,
           center.z + distance * 0.5
         );
         
-        camera.zoom = (frustumSize / maxDim) * 0.8;
-        camera.updateProjectionMatrix();
-        
         const controls = new OrbitControls(camera, renderer.domElement);
-        controls.setTarget(center.x, center.y, center.z);
+        controls.target.copy(center);
         controls.enableRotate = true;
-        controls.enableZoom = true;
+        controls.enableZoom = false;
         controls.enablePan = false;
         controls.rotateSpeed = 0.5;
-        controls.zoomSpeed = 1.2;
-        controls.minZoom = 0.1;
-        controls.maxZoom = 10;
+        controls.autoRotate = autoRotate;
+        controls.autoRotateSpeed = -1;
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
         
-        controls.onRotationChange = (rotation: number) => {
-          const opacity = calculateOpacity(rotation);
-          
-          if (model1Ref.current && model1Ref.current.material instanceof THREE.MeshStandardMaterial) {
-            model1Ref.current.material.opacity = opacity;
-            model1Ref.current.material.needsUpdate = true;
-            const transform = calculateModel1Transform(rotation, model1AnimationConfig);
-            model1Ref.current.scale.setScalar(transform.scale);
-            model1Ref.current.position.copy(transform.position);
-            model1Ref.current.rotation.copy(transform.rotation);
-          }
-          if (model2Ref.current && model2Ref.current.material instanceof THREE.MeshStandardMaterial) {
-            model2Ref.current.material.opacity = opacity;
-            model2Ref.current.material.needsUpdate = true;
-            const transform = calculateModel2Transform(rotation, model2AnimationConfig);
-            model2Ref.current.scale.setScalar(transform.scale);
-            model2Ref.current.position.copy(transform.position);
-            model2Ref.current.rotation.copy(transform.rotation);
-          }
-          
-          if (model3Ref.current) {
-            const transform = calculateModel3Transform(rotation, model3AnimationConfig);
-            model3Ref.current.scale.setScalar(transform.scale);
-            model3Ref.current.position.copy(transform.position);
-            model3Ref.current.rotation.copy(transform.rotation);
-          }
-        };
+        controls.addEventListener('start', () => {
+          isUserInteractingRef.current = true;
+        });
+        
+        controls.addEventListener('end', () => {
+          setTimeout(() => {
+            isUserInteractingRef.current = false;
+          }, 1000);
+        });
         
         controlsRef.current = controls;
         
@@ -686,33 +437,59 @@ const Scene: React.FC<STLViewerProps> = ({
         setIsLoading(false);
       });
 
+      const updateModels = (rotation: number) => {
+        const opacity = calculateOpacity(rotation);
+        
+        if (model1Ref.current && model1Ref.current.material instanceof THREE.MeshStandardMaterial && initialModel1Config.current) {
+          model1Ref.current.material.opacity = opacity;
+          model1Ref.current.material.needsUpdate = true;
+          const transform = calculateModel1Transform(rotation, initialModel1Config.current);
+          model1Ref.current.scale.setScalar(transform.scale);
+          model1Ref.current.position.copy(transform.position);
+          model1Ref.current.rotation.copy(transform.rotation);
+        }
+        if (model2Ref.current && model2Ref.current.material instanceof THREE.MeshStandardMaterial && initialModel2Config.current) {
+          model2Ref.current.material.opacity = opacity;
+          model2Ref.current.material.needsUpdate = true;
+          const transform = calculateModel2Transform(rotation, initialModel2Config.current);
+          model2Ref.current.scale.setScalar(transform.scale);
+          model2Ref.current.position.copy(transform.position);
+          model2Ref.current.rotation.copy(transform.rotation);
+        }
+        
+        if (model3Ref.current && initialModel3Config.current) {
+          const transform = calculateModel3Transform(rotation, initialModel3Config.current);
+          model3Ref.current.scale.setScalar(transform.scale);
+          model3Ref.current.position.copy(transform.position);
+          model3Ref.current.rotation.copy(transform.rotation);
+        }
+      };
+
       const animate = () => {
         animationRef.current = requestAnimationFrame(animate);
         
-        if (autoRotate && controlsRef.current) {
-          controlsRef.current.applyAutoRotate();
-        }
-        
         if (controlsRef.current) {
+          const prevAzimuth = controlsRef.current.getAzimuthalAngle();
           controlsRef.current.update();
+          const currentAzimuth = controlsRef.current.getAzimuthalAngle();
+          
+          const deltaRotation = currentAzimuth - prevAzimuth;
+          totalRotationRef.current += deltaRotation;
+          
+          updateModels(totalRotationRef.current);
         }
         
-        renderer.render(scene, camera);
+        if (rendererRef.current && sceneRef.current && cameraRef.current) {
+          rendererRef.current.render(sceneRef.current, cameraRef.current);
+        }
       };
       animate();
 
       const handleResize = () => {
         if (camera && renderer && container) {
-          const width = container.clientWidth;
-          const height = container.clientHeight;
-          const aspect = width / height;
-          
-          camera.left = frustumSize * aspect / -2;
-          camera.right = frustumSize * aspect / 2;
-          camera.top = frustumSize / 2;
-          camera.bottom = frustumSize / -2;
+          camera.aspect = container.clientWidth / container.clientHeight;
           camera.updateProjectionMatrix();
-          renderer.setSize(width, height);
+          renderer.setSize(container.clientWidth, container.clientHeight);
         }
       };
       
@@ -736,58 +513,7 @@ const Scene: React.FC<STLViewerProps> = ({
       setError('Failed to initialize 3D viewer');
       setIsLoading(false);
     }
-  }, [stlUrl1, stlUrl2, stlUrl3, autoRotate, modelColor, model1Transform, model2Transform, model3Transform, model1AnimationConfig, model2AnimationConfig, model3AnimationConfig]);
-
-  useEffect(() => {
-    if (model1Ref.current) {
-      model1Ref.current.position.set(
-        model1Transform?.position?.x ?? 0, 
-        model1Transform?.position?.y ?? 0, 
-        model1Transform?.position?.z ?? 0
-      );
-      model1Ref.current.rotation.set(
-        model1Transform?.rotation?.x ?? 0, 
-        model1Transform?.rotation?.y ?? 0, 
-        model1Transform?.rotation?.z ?? 0
-      );
-      model1Ref.current.scale.setScalar(model1Transform?.scale ?? 1);
-      model1Ref.current.visible = model1Transform?.visible ?? true;
-    }
-  }, [model1Transform]);
-
-  useEffect(() => {
-    if (model2Ref.current) {
-      model2Ref.current.position.set(
-        model2Transform?.position?.x ?? 0,
-        model2Transform?.position?.y ?? 0,
-        model2Transform?.position?.z ?? 0
-      );
-      model2Ref.current.rotation.set(
-        model2Transform?.rotation?.x ?? 0,
-        model2Transform?.rotation?.y ?? 0,
-        model2Transform?.rotation?.z ?? 0
-      );
-      model2Ref.current.scale.setScalar(model2Transform?.scale ?? 1);
-      model2Ref.current.visible = model2Transform?.visible ?? true;
-    }
-  }, [model2Transform]);
-
-  useEffect(() => {
-    if (model3Ref.current) {
-      model3Ref.current.position.set(
-        model3Transform?.position?.x ?? 0,
-        model3Transform?.position?.y ?? 0,
-        model3Transform?.position?.z ?? 0
-      );
-      model3Ref.current.rotation.set(
-        model3Transform?.rotation?.x ?? 0,
-        model3Transform?.rotation?.y ?? 0,
-        model3Transform?.rotation?.z ?? 0
-      );
-      model3Ref.current.scale.setScalar(model3Transform?.scale ?? 1);
-      model3Ref.current.visible = model3Transform?.visible ?? true;
-    }
-  }, [model3Transform]);
+  }, [stlUrl1, stlUrl2, stlUrl3, autoRotate, modelColor, model1AnimationConfig, model2AnimationConfig, model3AnimationConfig]);
 
   return (
     <div className="relative w-full" style={{ width, height }}>
