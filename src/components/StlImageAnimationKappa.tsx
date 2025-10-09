@@ -249,8 +249,8 @@ class OrbitControls {
 
   public applyAutoRotate() {
     if (!this.isUserInteracting) {
-      this.sphericalDelta.theta = -0.01;
-      this.totalRotation -= 0.01;
+      this.sphericalDelta.theta = -0.005;
+      this.totalRotation -= 0.005;
       
       if (this.onRotationChange) {
         this.onRotationChange(this.totalRotation);
